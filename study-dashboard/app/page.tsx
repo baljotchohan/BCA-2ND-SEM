@@ -71,14 +71,15 @@ const subjects: Subject[] = [
   },
   {
     id: "s4",
-    name: "History of Punjab",
+    name: "ਪੰਜਾਬ ਦਾ ਇਤਿਹਾਸ",
     code: "HOP-204",
-    progress: 0,
+    progress: 35,
     displayDate: "May 04",
     examDate: "2026-05-04T09:30:00",
+    time: "9:30 AM",
     color: "from-amber-500/20 to-transparent",
     icon: FileText,
-    locked: true,
+    locked: false,
   },
   {
     id: "s5",
@@ -520,9 +521,9 @@ export default function StudyDashboard() {
               {/* Tabs */}
               <div className="flex overflow-x-auto border-b border-white/5 px-2 md:px-6 hide-scrollbar shrink-0">
                 {[
-                  { id: "questions", label: "Important Questions" },
-                  { id: "notes", label: "PDF Notes" },
-                  { id: "units", label: "Unit Breakdown" },
+                  { id: "questions", label: activeSubject.code === "HOP-204" ? "ਮਹੱਤਵਪੂਰਨ ਪ੍ਰਸ਼ਨ" : "Important Questions" },
+                  { id: "notes", label: activeSubject.code === "HOP-204" ? "ਪੀ.ਡੀ.ਐਫ਼ ਨੋਟਸ" : "PDF Notes" },
+                  { id: "units", label: activeSubject.code === "HOP-204" ? "ਸਿਲੇਬਸ (ਯੂਨਿਟ)" : "Unit Breakdown" },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -556,16 +557,35 @@ export default function StudyDashboard() {
                       exit={{ opacity: 0, y: -10 }}
                       className="space-y-3"
                     >
-                      <div className="text-center py-12 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
-                        <FileText className="w-8 h-8 text-slate-600 mx-auto mb-3" />
-                        <h3 className="text-slate-300 font-medium">
-                          No questions added yet
-                        </h3>
-                        <p className="text-sm text-slate-500 mt-1">
-                          Provide the material to populate the important
-                          questions for {activeSubject.code}.
-                        </p>
-                      </div>
+                      {activeSubject.code === "HOP-204" ? (
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-medium text-white mb-4">ਮਹੱਤਵਪੂਰਨ ਪ੍ਰਸ਼ਨ (Important Questions)</h3>
+                          <ul className="space-y-3">
+                            {[
+                              "ਪੰਜਾਬ ਦੇ ਭੂਗੋਲਿਕ ਪਹਿਲੂਆਂ ਅਤੇ ਉਨ੍ਹਾਂ ਦਾ ਇਤਿਹਾਸ 'ਤੇ ਪ੍ਰਭਾਵ ਕੀ ਹੈ?",
+                              "ਸਿੰਧ ਘਾਟੀ ਦੀ ਸਭਿਅਤਾ ਦੀਆਂ ਮੁੱਖ ਵਿਸ਼ੇਸ਼ਤਾਵਾਂ ਦਾ ਵਰਣਨ ਕਰੋ।",
+                              "ਆਰੀਅਨਾਂ ਦਾ ਪੰਜਾਬ ਵਿੱਚ ਆਗਮਨ ਅਤੇ ਪ੍ਰਭਾਵ ਸਮਝਾਓ।",
+                              "ਗੁਰੂ ਨਾਨਕ ਦੇਵ ਜੀ ਦੀਆਂ ਪ੍ਰਮੁੱਖ ਸਿੱਖਿਆਵਾਂ ਬਾਰੇ ਚਰਚਾ ਕਰੋ।",
+                              "ਮਹਾਰਾਜਾ ਰਣਜੀਤ ਸਿੰਘ ਦੇ ਪ੍ਰਸ਼ਾਸਨਿਕ ਢਾਂਚੇ ਦਾ ਵਰਣਨ ਕਰੋ।"
+                            ].map((q, i) => (
+                              <li key={i} className="p-4 glass-panel rounded-xl border border-white/5 text-sm text-slate-200 hover:border-amber-500/30 transition-colors">
+                                <span className="text-amber-500 mr-2 font-bold">ਪ੍ਰਸ਼ਨ {i+1}:</span> {q}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : (
+                        <div className="text-center py-12 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
+                          <FileText className="w-8 h-8 text-slate-600 mx-auto mb-3" />
+                          <h3 className="text-slate-300 font-medium">
+                            No questions added yet
+                          </h3>
+                          <p className="text-sm text-slate-500 mt-1">
+                            Provide the material to populate the important
+                            questions for {activeSubject.code}.
+                          </p>
+                        </div>
+                      )}
                     </motion.div>
                   )}
 
@@ -577,15 +597,39 @@ export default function StudyDashboard() {
                       exit={{ opacity: 0, y: -10 }}
                       className="grid grid-cols-1 md:grid-cols-2 gap-4"
                     >
-                      <div className="col-span-full text-center py-12 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
-                        <Download className="w-8 h-8 text-slate-600 mx-auto mb-3" />
-                        <h3 className="text-slate-300 font-medium">
-                          Notes vault empty
-                        </h3>
-                        <p className="text-sm text-slate-500 mt-1">
-                          Awaiting PDF uploads and module materials.
-                        </p>
-                      </div>
+                      {activeSubject.code === "HOP-204" ? (
+                        <>
+                          {[
+                            { title: "ਪ੍ਰਾਚੀਨ ਪੰਜਾਬ", size: "2.4 MB" },
+                            { title: "ਸਿੱਖ ਇਤਿਹਾਸ", size: "3.1 MB" },
+                            { title: "ਮਹਾਰਾਜਾ ਰਣਜੀਤ ਸਿੰਘ ਕਾਲ", size: "1.8 MB" },
+                            { title: "ਆਧੁਨਿਕ ਪੰਜਾਬ", size: "2.0 MB" }
+                          ].map((pdf, i) => (
+                            <div key={i} className="glass-panel p-4 rounded-xl border border-white/5 flex items-center justify-between group cursor-pointer hover:bg-white/5 transition-all">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2 bg-red-500/10 rounded-lg text-red-400 group-hover:bg-red-500/20 transition-colors">
+                                  <FileText className="w-5 h-5" />
+                                </div>
+                                <div>
+                                  <h4 className="text-sm font-medium text-slate-200">{pdf.title}</h4>
+                                  <p className="text-xs text-slate-500">PDF • {pdf.size}</p>
+                                </div>
+                              </div>
+                              <Download className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition-colors" />
+                            </div>
+                          ))}
+                        </>
+                      ) : (
+                        <div className="col-span-full text-center py-12 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
+                          <Download className="w-8 h-8 text-slate-600 mx-auto mb-3" />
+                          <h3 className="text-slate-300 font-medium">
+                            Notes vault empty
+                          </h3>
+                          <p className="text-sm text-slate-500 mt-1">
+                            Awaiting PDF uploads and module materials.
+                          </p>
+                        </div>
+                      )}
                     </motion.div>
                   )}
 
@@ -597,16 +641,38 @@ export default function StudyDashboard() {
                       exit={{ opacity: 0, y: -10 }}
                       className="space-y-4"
                     >
-                      <div className="text-center py-12 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
-                        <BookOpen className="w-8 h-8 text-slate-600 mx-auto mb-3" />
-                        <h3 className="text-slate-300 font-medium">
-                          Syllabus missing
-                        </h3>
-                        <p className="text-sm text-slate-500 mt-1">
-                          Provide the unit-wise syllabus to generate study
-                          tracks.
-                        </p>
-                      </div>
+                      {activeSubject.code === "HOP-204" ? (
+                        <div className="space-y-4">
+                          {[
+                            { unit: "ਯੂਨਿਟ 1", title: "ਪ੍ਰਾਚੀਨ ਪੰਜਾਬ", desc: "ਸਿੰਧ ਘਾਟੀ ਦੀ ਸਭਿਅਤਾ, ਆਰੀਅਨਾਂ ਦਾ ਆਗਮਨ ਅਤੇ ਜਾਤੀ ਪ੍ਰਣਾਲੀ" },
+                            { unit: "ਯੂਨਿਟ 2", title: "ਮੱਧਕਾਲੀਨ ਪੰਜਾਬ", desc: "ਭਗਤੀ ਲਹਿਰ, ਸੂਫੀਵਾਦ ਅਤੇ ਪੰਜਾਬ ਦੇ ਸਮਾਜਿਕ ਹਾਲਾਤ" },
+                            { unit: "ਯੂਨਿਟ 3", title: "ਸਿੱਖ ਇਤਿਹਾਸ", desc: "ਗੁਰੂ ਨਾਨਕ ਦੇਵ ਜੀ ਤੋਂ ਗੁਰੂ ਗੋਬਿੰਦ ਸਿੰਘ ਜੀ ਤੱਕ, ਖਾਲਸੇ ਦੀ ਸਿਰਜਣਾ" },
+                            { unit: "ਯੂਨਿਟ 4", title: "ਆਧੁਨਿਕ ਪੰਜਾਬ", desc: "ਬ੍ਰਿਟਿਸ਼ ਰਾਜ, ਸਿੰਘ ਸਭਾ ਲਹਿਰ ਅਤੇ ਆਜ਼ਾਦੀ ਸੰਗਰਾਮ ਵਿੱਚ ਪੰਜਾਬ ਦਾ ਯੋਗਦਾਨ" }
+                          ].map((u, i) => (
+                            <div key={i} className="glass-panel p-5 rounded-xl border border-white/5 hover:border-amber-500/20 transition-colors">
+                              <div className="flex items-start gap-4">
+                                <div className="px-3 py-1 bg-amber-500/10 text-amber-400 text-xs font-mono rounded-md shrink-0">
+                                  {u.unit}
+                                </div>
+                                <div>
+                                  <h4 className="text-sm font-medium text-white mb-1">{u.title}</h4>
+                                  <p className="text-xs text-slate-400">{u.desc}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-12 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
+                          <BookOpen className="w-8 h-8 text-slate-600 mx-auto mb-3" />
+                          <h3 className="text-slate-300 font-medium">
+                            Syllabus missing
+                          </h3>
+                          <p className="text-sm text-slate-500 mt-1">
+                            Provide the unit-wise syllabus to generate study tracks.
+                          </p>
+                        </div>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
