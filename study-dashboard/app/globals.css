@@ -43,6 +43,7 @@ body {
 /* Custom Scrollbar for sleek look */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -53,6 +54,18 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--slate-gray-light);
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
 }
 
 .glass-panel {
