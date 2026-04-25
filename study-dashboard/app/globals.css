@@ -15,9 +15,8 @@
   
   --trade-green: #22c55e;
   --trade-red: #ef4444;
-}
 
-@theme inline {
+  /* Tailwind v4 theme variables */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-accent-cyan: var(--accent-cyan);
