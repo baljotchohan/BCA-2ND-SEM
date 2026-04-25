@@ -4,7 +4,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search,
   BookOpen,
   Clock,
   CalendarDays,
@@ -232,12 +231,10 @@ function CountdownDisplay({ nextExam, accentColor }: { nextExam: Subject; accent
   );
 }
 
-
 export default function StudyDashboard() {
   const [tradingMode, setTradingMode] = useState(false);
   const [activeSubject, setActiveSubject] = useState<Subject | null>(null);
   const [activeTab, setActiveTab] = useState("questions");
-  const [searchQuery, setSearchQuery] = useState("");
   const [mounted, setMounted] = useState(false);
   const [upcomingExams, setUpcomingExams] = useState<Subject[]>([]);
 
@@ -284,30 +281,7 @@ export default function StudyDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 flex flex-col md:flex-row gap-6 md:gap-8 relative z-10">
         {/* LEFT COLUMN: Main Content */}
         <div className="flex-1 space-y-6 md:space-y-8 min-w-0">
-          {/* Top Bar: Search */}
-          <motion.div
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="glass-panel rounded-2xl p-2 flex items-center relative group"
-          >
-            <Search className="w-5 h-5 text-slate-400 ml-3 shrink-0" />
-            <input
-              type="text"
-              placeholder="Search syllabus, notes... (Cmd+K)"
-              className="bg-transparent border-none outline-none flex-1 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 min-w-0"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <div className="hidden sm:flex items-center gap-1 mr-3 shrink-0">
-              <kbd className="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-slate-400">
-                ⌘
-              </kbd>
-              <kbd className="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-slate-400">
-                K
-              </kbd>
-            </div>
-          </motion.div>
-
+          
           {/* Hero Header */}
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
@@ -348,12 +322,7 @@ export default function StudyDashboard() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {subjects
-                .filter((s) =>
-                  s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  s.code.toLowerCase().includes(searchQuery.toLowerCase())
-                )
-                .map((subject, idx) => (
+              {subjects.map((subject, idx) => (
                 <motion.div
                   key={subject.id}
                   initial={{ opacity: 0, y: 20 }}
