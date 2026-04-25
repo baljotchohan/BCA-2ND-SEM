@@ -31,10 +31,7 @@ type Subject = {
   icon: LucideIcon;
   locked: boolean;
   syllabus?: {
-    objectives?: string[];
-    outcomes?: string[];
-    note?: string;
-    units?: { id: string; title: string; topics: string }[];
+    imageUrl?: string;
   };
 };
 
@@ -51,40 +48,7 @@ const subjects: Subject[] = [
     icon: TrendingUp,
     locked: false,
     syllabus: {
-      objectives: [
-        "To understand and asses the importance of information and its role in business.",
-        "To develop data analyzing skills in students to evaluate information and the tools used for information processing.",
-        "To imbibe theoretical knowledge of MIS in the students and prepare the students technological competitive and make them ready to self-upgrade with the higher technical skill."
-      ],
-      outcomes: [
-        "Understand the information needs of an organization and a business function.",
-        "Evaluate effectiveness of decision making process and identify its tools",
-        "Understand DSS techniques for making effective decisions",
-        "Design parameters for MIS application, for data analysis uses"
-      ],
-      note: "Examiner will be required to set nine questions in all. First question will be compulsory, consisting of objective type/short answer type questions covering the entire syllabus. In addition to that eight more questions will be set, two questions from each unit. A candidate will be required to answer five questions in all, selecting one question from each unit in addition to compulsory question number one. All questions will carry equal marks.",
-      units: [
-        {
-          id: "UNIT-I",
-          title: "Introduction to System and Basic System Concepts",
-          topics: "Introduction to System and Basic System Concepts, Types of Systems, The Systems Approach, Information System: Definition & Characteristics, Types of information, Role of Information in Decision-Making."
-        },
-        {
-          id: "UNIT-II",
-          title: "An overview of Management Information System",
-          topics: "An overview of Management Information System: Definition & Characteristics, Components of MIS, Frame Work for Understanding MIS: Information requirements & Levels of Management, Simon's Model of decision-Making, Structured Vs Unstructured decisions, Formal vs. Informal Systems."
-        },
-        {
-          id: "UNIT-III",
-          title: "Developing Information Systems",
-          topics: "Developing Information Systems: Analysis & Design of Information Systems, Implementation & Evaluation, Pitfalls in MIS Development."
-        },
-        {
-          id: "UNIT-IV",
-          title: "Functional MIS",
-          topics: "Functional MIS: A Study of Personnel, Financial and Production MIS, Introduction to EBusiness Systems, E-Commerce- Technologies, Applications, Decision Support Systems for Planning, Control and Decision- Making."
-        }
-      ]
+      imageUrl: "/mis-syllabus.png"
     }
   },
   {
@@ -629,72 +593,14 @@ export default function StudyDashboard() {
                       exit={{ opacity: 0, y: -10 }}
                       className="space-y-6 pb-6"
                     >
-                      {activeSubject.syllabus ? (
-                        <>
-                          {/* Syllabus Metadata */}
-                          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                            {activeSubject.syllabus.objectives && (
-                              <div className="glass-panel p-5 rounded-2xl border border-white/5 bg-white/[0.01]">
-                                <h3 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
-                                  <BookOpen className="w-4 h-4 text-slate-400" />
-                                  Objectives
-                                </h3>
-                                <ul className="space-y-2">
-                                  {activeSubject.syllabus.objectives.map((obj, i) => (
-                                    <li key={i} className="text-xs text-slate-400 flex items-start gap-2">
-                                      <span className="text-slate-600 mt-0.5">•</span>
-                                      {obj}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            {activeSubject.syllabus.outcomes && (
-                              <div className="glass-panel p-5 rounded-2xl border border-white/5 bg-white/[0.01]">
-                                <h3 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
-                                  <TrendingUp className="w-4 h-4 text-slate-400" />
-                                  Learning Outcomes
-                                </h3>
-                                <ul className="space-y-2">
-                                  {activeSubject.syllabus.outcomes.map((out, i) => (
-                                    <li key={i} className="text-xs text-slate-400 flex items-start gap-2">
-                                      <span className="text-slate-600 mt-0.5">•</span>
-                                      {out}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-
-                          {activeSubject.syllabus.note && (
-                            <div className="glass-panel p-4 rounded-xl border border-yellow-500/20 bg-yellow-500/5">
-                              <h4 className="text-xs font-semibold text-yellow-500/80 mb-1 uppercase tracking-wider">Note for Exams</h4>
-                              <p className="text-xs text-slate-400 leading-relaxed">{activeSubject.syllabus.note}</p>
-                            </div>
-                          )}
-
-                          {/* Units Breakdown */}
-                          {activeSubject.syllabus.units && activeSubject.syllabus.units.length > 0 && (
-                            <div className="space-y-3 mt-6">
-                              <h3 className="text-sm font-semibold text-slate-200 mb-4 px-1">Course Units</h3>
-                              {activeSubject.syllabus.units.map((unit, i) => (
-                                <div key={i} className="glass-panel p-5 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
-                                  <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-white/5 flex flex-col items-center justify-center shrink-0 border border-white/10">
-                                      <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Unit</span>
-                                      <span className="text-lg font-mono text-slate-200">{unit.id.split('-')[1]}</span>
-                                    </div>
-                                    <div>
-                                      <h4 className="text-sm font-medium text-white mb-2">{unit.title}</h4>
-                                      <p className="text-xs text-slate-400 leading-relaxed">{unit.topics}</p>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </>
+                      {activeSubject.syllabus?.imageUrl ? (
+                        <div className="glass-panel p-2 rounded-2xl border border-white/5 bg-white/[0.01]">
+                          <img 
+                            src={activeSubject.syllabus.imageUrl} 
+                            alt={`${activeSubject.name} Syllabus`} 
+                            className="w-full h-auto rounded-xl"
+                          />
+                        </div>
                       ) : (
                         <div className="text-center py-12 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
                           <BookOpen className="w-8 h-8 text-slate-600 mx-auto mb-3" />
