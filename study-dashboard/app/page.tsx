@@ -40,7 +40,7 @@ const subjects: Subject[] = [
     id: "s1",
     name: "Management Info Systems",
     code: "MIS-201",
-    progress: 0,
+    progress: 95,
     displayDate: "April 27",
     examDate: "2026-04-27T09:30:00",
     time: "9:30 AM",
@@ -48,7 +48,7 @@ const subjects: Subject[] = [
     icon: TrendingUp,
     locked: false,
     syllabus: {
-      imageUrl: "/mis-syllabus.png"
+      imageUrl: "/BCA-2ND-SEM/MIS.jpeg"
     }
   },
   {
@@ -107,7 +107,7 @@ const subjects: Subject[] = [
     examDate: "2026-05-11T09:30:00",
     color: "from-orange-500/20 to-transparent",
     icon: FileText,
-    locked: false,
+    locked: true,
   },
   {
     id: "s8",
@@ -122,6 +122,117 @@ const subjects: Subject[] = [
   },
 ];
 
+const misQuestions = [
+  {
+    category: "Section A (Short Definitions & Concepts)",
+    items: [
+      "Define MIS, DSS, TPS, and ERP with examples.",
+      "Distinguish between Data and Information. What are the dimensions of high-quality information?",
+      "Define the characteristics of a system (Organization, Interaction, Interdependence, Integration, Central Objective).",
+      "What is the difference between an Open System and a Closed System? Give organizational examples.",
+      "List and explain the four types of system maintenance (Corrective, Adaptive, Perfective, Preventive)."
+    ]
+  },
+  {
+    category: "Section B & C (Long Answers & Core Models)",
+    items: [
+      "Explain Herbert Simon's Model of Decision-Making. Draw the Intelligence-Design-Choice flow and explain 'Bounded Rationality'.",
+      "Detail the phases of the System Development Life Cycle (SDLC). Emphasize the importance of Requirement Analysis and the SRS document.",
+      "Discuss the structural hierarchy of MIS across management levels (TPS for Operational, DSS for Middle Management, EIS for Executives).",
+      "Explain the strict rules for constructing Data Flow Diagrams (DFDs) and the difference between Context Diagram (Level 0) and subsequent levels.",
+      "What is the strategic role of a Systems Analyst in bridging the gap between business users and technologists?",
+      "Discuss the functional information needs of Marketing (Marketing MIS) and Human Resources (HRIS).",
+      "What is Enterprise Resource Planning (ERP)? Discuss its benefits over conventional systems and its implementation lifecycle.",
+      "How does a Data Warehouse differ from an Operational Database (TPS)? Explain its role alongside Data Mining in Business Intelligence.",
+      "Explain Michael Porter's Competitive Forces Model in the context of achieving strategic advantage through Information Systems."
+    ]
+  }
+];
+
+const misTopics = [
+  { title: "Theoretical Foundations", desc: "System characteristics (Organization, Interaction, Interdependence, Integration, Central Objective). Open vs Closed, Physical vs Abstract systems." },
+  { title: "Structural Hierarchy of MIS", desc: "Transaction Processing Systems (TPS) for operational staff, Decision Support Systems (DSS) for middle management, and Executive Information Systems (EIS) for top executives." },
+  { title: "Simon's Decision-Making Model", desc: "Intelligence Phase (problem identification), Design Phase (developing alternatives), Choice Phase (selecting solution), and the concept of 'Bounded Rationality' (satisficing)." },
+  { title: "System Development Life Cycle (SDLC)", desc: "Phases: Requirement Analysis (SRS), System Design (HLD/LLD), Coding, Testing, and Maintenance (Corrective, Adaptive, Perfective, Preventive)." },
+  { title: "Functional MIS & ERP", desc: "Integration of Marketing, HRIS, FIS, and Production systems. Enterprise Resource Planning (ERP) for a unified view of organizational processes." },
+  { title: "Advanced Topics", desc: "Data Warehousing vs Operational Databases, Data Mining, E-commerce models (B2B, B2C), GDSS, and Expert Systems." }
+];
+
+import Link from "next/link";
+import { Target } from "lucide-react";
+
+function CountdownDisplay({ nextExam, accentColor }: { nextExam: Subject; accentColor: string }) {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
+
+  useEffect(() => {
+    const targetDate = new Date(nextExam.examDate).getTime();
+    
+    const updateTime = () => {
+      const now = new Date().getTime();
+      const distance = targetDate - now;
+      if (distance < 0) {
+        setTimeLeft({ days: 0, hours: 0, mins: 0, secs: 0 });
+      } else {
+        setTimeLeft({
+          days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          mins: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+          secs: Math.floor((distance % (1000 * 60)) / 1000),
+        });
+      }
+      return distance;
+    };
+    
+    if (updateTime() < 0) return;
+
+    const interval = setInterval(() => {
+      if (updateTime() < 0) clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [nextExam]);
+
+  return (
+    <div className="flex gap-4">
+      <div className="text-center">
+        <div
+          className="text-xl md:text-2xl font-mono font-bold"
+          style={{ color: accentColor }}
+        >
+          {timeLeft.days.toString().padStart(2, "0")}
+        </div>
+        <div className="text-[10px] uppercase tracking-wider text-slate-500">
+          Days
+        </div>
+      </div>
+      <div className="text-center">
+        <div className="text-xl md:text-2xl font-mono font-bold">
+          {timeLeft.hours.toString().padStart(2, "0")}
+        </div>
+        <div className="text-[10px] uppercase tracking-wider text-slate-500">
+          Hrs
+        </div>
+      </div>
+      <div className="text-center">
+        <div className="text-xl md:text-2xl font-mono font-bold">
+          {timeLeft.mins.toString().padStart(2, "0")}
+        </div>
+        <div className="text-[10px] uppercase tracking-wider text-slate-500">
+          Min
+        </div>
+      </div>
+      <div className="text-center">
+        <div className="text-xl md:text-2xl font-mono font-bold">
+          {timeLeft.secs.toString().padStart(2, "0")}
+        </div>
+        <div className="text-[10px] uppercase tracking-wider text-slate-500">
+          Sec
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export default function StudyDashboard() {
   const [tradingMode, setTradingMode] = useState(false);
   const [activeSubject, setActiveSubject] = useState<Subject | null>(null);
@@ -130,13 +241,6 @@ export default function StudyDashboard() {
   const [mounted, setMounted] = useState(false);
   const [upcomingExams, setUpcomingExams] = useState<Subject[]>([]);
 
-  // Countdown timer logic for next exam
-  const [timeLeft, setTimeLeft] = useState({
-    days: 0,
-    hours: 0,
-    mins: 0,
-    secs: 0,
-  });
   const [nextExam, setNextExam] = useState<Subject | null>(null);
 
   useEffect(() => {
@@ -159,26 +263,6 @@ export default function StudyDashboard() {
 
     if (futureExams.length > 0) {
       setNextExam(futureExams[0]);
-      const targetDate = new Date(futureExams[0].examDate).getTime();
-
-      const interval = setInterval(() => {
-        const now = new Date().getTime();
-        const distance = targetDate - now;
-
-        if (distance < 0) {
-          clearInterval(interval);
-        } else {
-          setTimeLeft({
-            days: Math.floor(distance / (1000 * 60 * 60 * 24)),
-            hours: Math.floor(
-              (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-            ),
-            mins: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-            secs: Math.floor((distance % (1000 * 60)) / 1000),
-          });
-        }
-      }, 1000);
-      return () => clearInterval(interval);
     }
   }, [mounted]);
 
@@ -194,7 +278,7 @@ export default function StudyDashboard() {
       {/* Background Glow */}
       <div
         className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[120px] opacity-20 pointer-events-none transition-colors duration-1000 z-0"
-        style={{ backgroundColor: accentColor }}
+        style={{ backgroundColor: accentColor, transform: 'translateZ(0)', willChange: 'transform' }}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 flex flex-col md:flex-row gap-6 md:gap-8 relative z-10">
@@ -251,43 +335,7 @@ export default function StudyDashboard() {
                     {nextExam.name}
                   </span>
                 </div>
-                <div className="flex gap-4">
-                  <div className="text-center">
-                    <div
-                      className="text-xl md:text-2xl font-mono font-bold"
-                      style={{ color: accentColor }}
-                    >
-                      {timeLeft.days.toString().padStart(2, "0")}
-                    </div>
-                    <div className="text-[10px] uppercase tracking-wider text-slate-500">
-                      Days
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xl md:text-2xl font-mono font-bold">
-                      {timeLeft.hours.toString().padStart(2, "0")}
-                    </div>
-                    <div className="text-[10px] uppercase tracking-wider text-slate-500">
-                      Hrs
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xl md:text-2xl font-mono font-bold">
-                      {timeLeft.mins.toString().padStart(2, "0")}
-                    </div>
-                    <div className="text-[10px] uppercase tracking-wider text-slate-500">
-                      Min
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xl md:text-2xl font-mono font-bold">
-                      {timeLeft.secs.toString().padStart(2, "0")}
-                    </div>
-                    <div className="text-[10px] uppercase tracking-wider text-slate-500">
-                      Sec
-                    </div>
-                  </div>
-                </div>
+                <CountdownDisplay nextExam={nextExam} accentColor={accentColor} />
               </div>
             )}
           </motion.div>
@@ -300,7 +348,12 @@ export default function StudyDashboard() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {subjects.map((subject, idx) => (
+              {subjects
+                .filter((s) =>
+                  s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  s.code.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+                .map((subject, idx) => (
                 <motion.div
                   key={subject.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -518,7 +571,7 @@ export default function StudyDashboard() {
                 {[
                   { id: "questions", label: "Important Questions" },
                   { id: "notes", label: "PDF Notes" },
-                  { id: "units", label: "Unit Breakdown" },
+                  { id: "units", label: "Syllabus" },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -550,18 +603,45 @@ export default function StudyDashboard() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="space-y-3"
+                      className="space-y-6 pb-6"
                     >
-                      <div className="text-center py-12 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
-                        <FileText className="w-8 h-8 text-slate-600 mx-auto mb-3" />
-                        <h3 className="text-slate-300 font-medium">
-                          No questions added yet
-                        </h3>
-                        <p className="text-sm text-slate-500 mt-1">
-                          Provide the material to populate the important
-                          questions for {activeSubject.code}.
-                        </p>
-                      </div>
+                      {activeSubject.id === "s1" ? (
+                        <div className="pt-2">
+                          <Link href="/mis/questions">
+                            <div className="border border-emerald-500/30 rounded-2xl p-6 bg-gradient-to-br from-emerald-900/20 to-transparent hover:border-emerald-400/50 hover:from-emerald-900/30 transition-all cursor-pointer group relative overflow-hidden">
+                              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-bl-full -z-10 group-hover:bg-emerald-500/20 transition-colors"></div>
+                              <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="bg-emerald-500/20 text-emerald-400 p-2 rounded-lg">
+                                    <Target className="w-6 h-6" />
+                                  </div>
+                                  <h3 className="text-xl font-bold text-white tracking-wide">IMPORTANT Q's (IMPQ)</h3>
+                                </div>
+                                <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider border border-emerald-500/20">
+                                  100% Sure Topics
+                                </span>
+                              </div>
+                              <p className="text-sm text-emerald-100/70 mb-4 font-medium">Complete Question Bank & Detailed Analysis. Formatted for print.</p>
+                              <div className="flex items-center gap-4 text-xs font-mono text-emerald-400/80 uppercase">
+                                <span className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5" /> Detailed Answers</span>
+                                <span>•</span>
+                                <span className="flex items-center gap-1.5">Exam Oriented</span>
+                              </div>
+                            </div>
+                          </Link>
+                        </div>
+                      ) : (
+                        <div className="text-center py-12 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
+                          <FileText className="w-8 h-8 text-slate-600 mx-auto mb-3" />
+                          <h3 className="text-slate-300 font-medium">
+                            No questions added yet
+                          </h3>
+                          <p className="text-sm text-slate-500 mt-1">
+                            Provide the material to populate the important
+                            questions for {activeSubject.code}.
+                          </p>
+                        </div>
+                      )}
                     </motion.div>
                   )}
 
@@ -571,17 +651,44 @@ export default function StudyDashboard() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                      className="space-y-4 pb-6"
                     >
-                      <div className="col-span-full text-center py-12 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
-                        <Download className="w-8 h-8 text-slate-600 mx-auto mb-3" />
-                        <h3 className="text-slate-300 font-medium">
-                          Notes vault empty
-                        </h3>
-                        <p className="text-sm text-slate-500 mt-1">
-                          Awaiting PDF uploads and module materials.
-                        </p>
-                      </div>
+                      {activeSubject.id === "s1" ? (
+                        <div className="pt-2">
+                          <Link href="/mis/notes">
+                            <div className="border border-emerald-500/30 rounded-2xl p-6 bg-gradient-to-br from-emerald-900/20 to-transparent hover:border-emerald-400/50 hover:from-emerald-900/30 transition-all cursor-pointer group relative overflow-hidden">
+                              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-bl-full -z-10 group-hover:bg-emerald-500/20 transition-colors"></div>
+                              <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="bg-emerald-500/20 text-emerald-400 p-2 rounded-lg">
+                                    <BookOpen className="w-6 h-6" />
+                                  </div>
+                                  <h3 className="text-xl font-bold text-white tracking-wide">MIS MASTER NOTES</h3>
+                                </div>
+                                <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider border border-emerald-500/20">
+                                  BCA-DSC-4
+                                </span>
+                              </div>
+                              <p className="text-sm text-emerald-100/70 mb-4 font-medium">Complete Theory Notes & Syllabus Master Document. Formatted for print.</p>
+                              <div className="flex items-center gap-4 text-xs font-mono text-emerald-400/80 uppercase">
+                                <span className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5" /> Theory Notes</span>
+                                <span>•</span>
+                                <span className="flex items-center gap-1.5">Complete Syllabus</span>
+                              </div>
+                            </div>
+                          </Link>
+                        </div>
+                      ) : (
+                        <div className="col-span-full text-center py-12 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
+                          <Download className="w-8 h-8 text-slate-600 mx-auto mb-3" />
+                          <h3 className="text-slate-300 font-medium">
+                            Notes vault empty
+                          </h3>
+                          <p className="text-sm text-slate-500 mt-1">
+                            Awaiting PDF uploads and module materials.
+                          </p>
+                        </div>
+                      )}
                     </motion.div>
                   )}
 
