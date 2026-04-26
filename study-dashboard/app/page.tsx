@@ -159,6 +159,7 @@ const misTopics = [
 
 import Link from "next/link";
 import { Target } from "lucide-react";
+import AIFab from "./components/AIFab";
 
 function CountdownDisplay({ nextExam, accentColor }: { nextExam: Subject; accentColor: string }) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
@@ -696,6 +697,7 @@ export default function StudyDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+      <AIFab />
     </div>
   );
 }
