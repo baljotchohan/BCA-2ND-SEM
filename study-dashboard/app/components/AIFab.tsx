@@ -169,6 +169,7 @@ class AIManager {
   engine: webllm.MLCEngine | null = null;
   currentModelId: string | null = null;
   aborted = false;
+  isProcessing = false;
   
   static getInstance() {
     if (!_aiManagerInstance) _aiManagerInstance = new AIManager();
@@ -180,7 +181,6 @@ class AIManager {
     if (this.engine) {
       try { await this.engine.unload(); } catch (_) {}
     }
-    // Using CreateMLCEngine factory is more stable than 'new MLCEngine'
     this.engine = await webllm.CreateMLCEngine(modelId, {
       initProgressCallback: (report) => onProgress(report.text)
     });
@@ -192,6 +192,7 @@ class AIManager {
     try { if (this.engine) await this.engine.unload(); } catch (_) {}
     this.engine = null;
     this.currentModelId = null;
+    this.isProcessing = false;
   }
   
   async askQuestion(
@@ -203,23 +204,39 @@ class AIManager {
     onUpdate: (text: string) => void,
     isRetry = false
   ): Promise<string> {
+    if (this.isProcessing && !isRetry) throw new Error("AI is busy");
     if (!this.engine) throw new Error("AI not initialized");
-    this.aborted = false;
     
-    const messages: webllm.ChatCompletionMessageParam[] = [
-      { 
-        role: "system", 
-        content: `You are ${userName}'s academic AI. ${modePrompt} Rules: No greetings. Use bullet points, bold, emojis. Code in \`\`\`lang blocks.`
-      }
-    ];
-
-    const recentHistory = history.slice(-4);
-    for (const msg of recentHistory) {
-      messages.push({ role: msg.role === "ai" ? "assistant" : "user", content: msg.content });
-    }
-    messages.push({ role: "user", content: newQuestion });
+    this.isProcessing = true;
+    this.aborted = false;
 
     try {
+      // EXTREME MEMORY FIX: Clear internal KV cache before every question to save RAM
+      try { await this.engine.resetChat(); } catch(e) {}
+
+      const messages: webllm.ChatCompletionMessageParam[] = [
+        { 
+          role: "system", 
+          content: `You are ${userName}'s academic AI. ${modePrompt} Rules: No greetings. Bullet points. Code in \`\`\`lang blocks.`
+        }
+      ];
+
+      // AGGRESSIVE HISTORY TRUNCATION: 
+      // Limit to ~1500 characters total to prevent OOM on 2GB RAM devices
+      let currentLength = 0;
+      const historyToInclude: webllm.ChatCompletionMessageParam[] = [];
+      for (let i = history.length - 1; i >= 0 && historyToInclude.length < 3; i--) {
+        const msg = history[i];
+        if (currentLength + msg.content.length > 1500) break;
+        currentLength += msg.content.length;
+        historyToInclude.unshift({ 
+          role: msg.role === "ai" ? "assistant" : "user", 
+          content: msg.content 
+        });
+      }
+      messages.push(...historyToInclude);
+      messages.push({ role: "user", content: newQuestion });
+
       const chunks = await this.engine.chat.completions.create({
         messages,
         temperature: 0.7,
@@ -242,13 +259,17 @@ class AIManager {
       onUpdate(fullReply);
       return fullReply;
     } catch (err: any) {
-      // ADVANCED: Auto-Retry on Tokenizer Crash
-      if (err?.message?.includes("deleted") && !isRetry && this.currentModelId) {
-        onUpdate("🔄 Critical Error: Tokenizer lost. Attempting auto-recovery...");
+      const errMsg = err?.message || "";
+      // Handle both "deleted" and "disposed" errors (WASM memory crashes)
+      if ((errMsg.includes("deleted") || errMsg.includes("disposed")) && !isRetry && this.currentModelId) {
+        onUpdate("🔄 Memory Limit Hit. Recovering AI context...");
         await this.loadModel(this.currentModelId, (p) => onUpdate(`🔄 Recovering: ${p}`));
+        this.isProcessing = false; // Reset lock before retry
         return this.askQuestion(history, newQuestion, userName, modePrompt, maxTokens, onUpdate, true);
       }
       throw err;
+    } finally {
+      this.isProcessing = false;
     }
   }
 }
