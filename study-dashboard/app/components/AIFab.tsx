@@ -14,9 +14,9 @@ const MODELS = [
 ];
 
 const MODES = [
-  { id: "fast", name: "⚡ Fast Mode", prompt: "MODE = FAST. Provide quick, normal responses. Be extremely brief, direct, and concise. Max 3 bullet points." },
-  { id: "pro", name: "🧠 Pro Mode", prompt: "MODE = PRO. Provide highly advanced, detailed academic explanations. Use deep examples. Assume the user is an advanced university student." },
-  { id: "thinking", name: "🤔 Thinking Mode", prompt: "MODE = THINKING. Think step-by-step. First, analyze the question deeply across multiple logic levels. Then break down the complex concepts level-by-level to deliver a vastly smarter, exhaustive response." }
+  { id: "fast", name: "⚡ Fast", prompt: "Be brief. Max 3 bullets.", maxTokens: 256 },
+  { id: "pro", name: "🧠 Pro", prompt: "Detailed academic answer with examples.", maxTokens: 512 },
+  { id: "thinking", name: "🤔 Think", prompt: "MODE = THINKING. Think step-by-step. Analyze the question deeply across multiple logic levels. Break down complex concepts level-by-level to deliver an exhaustive response.", maxTokens: 1024 }
 ];
 
 function parseResponse(text: string) {
@@ -176,14 +176,14 @@ class AIManager {
   }
   
   async loadModel(modelId: string, onProgress: (progress: string) => void) {
-    if (!this.engine) {
-      this.engine = new webllm.MLCEngine();
-      this.engine.setInitProgressCallback((report: webllm.InitProgressReport) => {
-        onProgress(report.text);
-      });
+    // Always create a fresh engine to avoid stale WASM pointers
+    if (this.engine) {
+      try { await this.engine.unload(); } catch (_) {}
     }
-    if (this.currentModelId === modelId) return;
-    
+    this.engine = new webllm.MLCEngine();
+    this.engine.setInitProgressCallback((report: webllm.InitProgressReport) => {
+      onProgress(report.text);
+    });
     this.currentModelId = modelId;
     await this.engine.reload(modelId);
   }
@@ -196,14 +196,14 @@ class AIManager {
     this.currentModelId = null;
   }
   
-  async askQuestion(history: {role: "user"|"ai", content: string}[], newQuestion: string, userName: string, modePrompt: string, onUpdate: (text: string) => void) {
+  async askQuestion(history: {role: "user"|"ai", content: string}[], newQuestion: string, userName: string, modePrompt: string, maxTokens: number, onUpdate: (text: string) => void): Promise<string> {
     if (!this.engine) throw new Error("AI not initialized");
     this.aborted = false;
     
     const messages: webllm.ChatCompletionMessageParam[] = [
       { 
         role: "system", 
-        content: `You are ${userName}'s academic AI. ${modePrompt} Rules: No greetings. Use bullet points, bold text, emojis for headers. Wrap code in \`\`\`lang blocks.`
+        content: `You are ${userName}'s academic AI. ${modePrompt} Rules: No greetings. Use bullet points, bold, emojis for headers. Code in \`\`\`lang blocks.`
       }
     ];
 
@@ -214,29 +214,37 @@ class AIManager {
     }
     messages.push({ role: "user", content: newQuestion });
 
-    const chunks = await this.engine.chat.completions.create({
-      messages,
-      temperature: 0.7,
-      max_tokens: 512,
-      stream: true,
-    });
-    
-    let fullReply = "";
-    let lastUpdate = 0;
-    for await (const chunk of chunks) {
-      if (this.aborted) break;
-      const delta = chunk.choices[0]?.delta.content || "";
-      fullReply += delta;
-      // Throttle UI updates to every 100ms to prevent mobile re-render crashes
-      const now = Date.now();
-      if (now - lastUpdate > 100) {
-        lastUpdate = now;
-        onUpdate(fullReply);
+    try {
+      const chunks = await this.engine.chat.completions.create({
+        messages,
+        temperature: 0.7,
+        max_tokens: maxTokens,
+        stream: true,
+      });
+      
+      let fullReply = "";
+      let lastUpdate = 0;
+      for await (const chunk of chunks) {
+        if (this.aborted) break;
+        const delta = chunk.choices[0]?.delta.content || "";
+        fullReply += delta;
+        const now = Date.now();
+        if (now - lastUpdate > 100) {
+          lastUpdate = now;
+          onUpdate(fullReply);
+        }
       }
+      onUpdate(fullReply);
+      return fullReply;
+    } catch (err: any) {
+      // "deleted object" = WASM tokenizer died. Force reload engine and retry once.
+      if (err?.message?.includes("deleted")) {
+        onUpdate("🔄 Engine reset — retrying...");
+        await this.resetEngine();
+        throw new Error("Engine crashed. Please try again — model will auto-reload.");
+      }
+      throw err;
     }
-    // Final update with complete text
-    onUpdate(fullReply);
-    return fullReply;
   }
 }
 
@@ -339,10 +347,12 @@ export default function AIFab() {
     setIsGenerating(true);
     setMessages(prev => [...prev, { role: "ai", content: "⏳ Generating..." }]);
     
-    const modePrompt = MODES.find(m => m.id === selectedMode)?.prompt || "";
+    const mode = MODES.find(m => m.id === selectedMode);
+    const modePrompt = mode?.prompt || "";
+    const maxTokens = (mode as any)?.maxTokens || 512;
     
     try {
-      const fullResponse = await aiRef.current.askQuestion(historyToPass, question, userName, modePrompt, (partial) => {
+      const fullResponse = await aiRef.current.askQuestion(historyToPass, question, userName, modePrompt, maxTokens, (partial) => {
         setMessages(prev => {
           const newMsgs = [...prev];
           newMsgs[newMsgs.length - 1] = { role: "ai", content: partial };
