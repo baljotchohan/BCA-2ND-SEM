@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, X, Loader2, AlertTriangle, CheckCircle2, Target, Bot, Sparkles, User, Copy, Settings2, Code2, Infinity as InfinityIcon, Aperture, BrainCircuit } from "lucide-react";
 import * as webllm from "@mlc-ai/web-llm";
@@ -162,10 +162,18 @@ const FormattedMessage = ({ text }: { text: string }) => {
   );
 };
 
-// --- AI Manager ---
+// --- AI Manager (Singleton) ---
+let _aiManagerInstance: AIManager | null = null;
+
 class AIManager {
   engine: webllm.MLCEngine | null = null;
   currentModelId: string | null = null;
+  aborted = false;
+  
+  static getInstance() {
+    if (!_aiManagerInstance) _aiManagerInstance = new AIManager();
+    return _aiManagerInstance;
+  }
   
   async loadModel(modelId: string, onProgress: (progress: string) => void) {
     if (!this.engine) {
@@ -179,9 +187,18 @@ class AIManager {
     this.currentModelId = modelId;
     await this.engine.reload(modelId);
   }
+
+  abort() { this.aborted = true; }
+
+  async resetEngine() {
+    try { if (this.engine) await this.engine.unload(); } catch (_) {}
+    this.engine = null;
+    this.currentModelId = null;
+  }
   
   async askQuestion(history: {role: "user"|"ai", content: string}[], newQuestion: string, userName: string, modePrompt: string, onUpdate: (text: string) => void) {
     if (!this.engine) throw new Error("AI not initialized");
+    this.aborted = false;
     
     const messages: webllm.ChatCompletionMessageParam[] = [
       { 
@@ -212,12 +229,20 @@ CRITICAL RULES:
     });
     
     let fullReply = "";
+    let lastUpdate = 0;
     for await (const chunk of chunks) {
+      if (this.aborted) break;
       const delta = chunk.choices[0]?.delta.content || "";
       fullReply += delta;
-      onUpdate(fullReply);
+      // Throttle UI updates to every 100ms to prevent mobile re-render crashes
+      const now = Date.now();
+      if (now - lastUpdate > 100) {
+        lastUpdate = now;
+        onUpdate(fullReply);
+      }
     }
-    
+    // Final update with complete text
+    onUpdate(fullReply);
     return fullReply;
   }
 }
@@ -244,7 +269,7 @@ export default function AIFab() {
   const [hasWebGPU, setHasWebGPU] = useState<boolean>(true);
   const [gpuError, setGpuError] = useState<string | null>(null);
 
-  const aiRef = useRef<AIManager>(new AIManager());
+  const aiRef = useRef<AIManager>(AIManager.getInstance());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -309,7 +334,7 @@ export default function AIFab() {
     handleStartAI(newModelId); // triggers reload screen
   };
 
-  const handleAsk = async (e?: React.FormEvent) => {
+  const handleAsk = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!input.trim() || !isReady || isGenerating) return;
     
@@ -319,7 +344,7 @@ export default function AIFab() {
     const historyToPass = messages.map(m => ({ role: m.role, content: m.content }));
     setMessages(prev => [...prev, { role: "user", content: question }]);
     setIsGenerating(true);
-    setMessages(prev => [...prev, { role: "ai", content: "" }]);
+    setMessages(prev => [...prev, { role: "ai", content: "⏳ Generating..." }]);
     
     const modePrompt = MODES.find(m => m.id === selectedMode)?.prompt || "";
     
@@ -338,17 +363,25 @@ export default function AIFab() {
         newMsgs[newMsgs.length - 1] = { role: "ai", content: fullResponse, parsed };
         return newMsgs;
       });
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Generation error:", err);
+      const errorMsg = err?.message || "Unknown error";
       setMessages(prev => {
         const newMsgs = [...prev];
-        newMsgs[newMsgs.length - 1] = { role: "ai", content: "Sorry, an error occurred while generating the answer." };
+        newMsgs[newMsgs.length - 1] = { role: "ai", content: `⚠️ Error: ${errorMsg}. Try asking again or switch to a smaller model.` };
         return newMsgs;
       });
+      // If engine crashed, reset it so next attempt reloads
+      if (errorMsg.includes("lost") || errorMsg.includes("destroy") || errorMsg.includes("GPU")) {
+        await aiRef.current.resetEngine();
+        setIsReady(false);
+        setStep("consent");
+        setGpuError("The AI engine crashed during generation. Please re-initialize with a smaller model.");
+      }
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, [input, isReady, isGenerating, messages, selectedMode, userName]);
 
   return (
     <>
