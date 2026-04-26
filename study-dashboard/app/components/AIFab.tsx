@@ -176,16 +176,14 @@ class AIManager {
   }
   
   async loadModel(modelId: string, onProgress: (progress: string) => void) {
-    // Always create a fresh engine to avoid stale WASM pointers
+    this.currentModelId = modelId;
     if (this.engine) {
       try { await this.engine.unload(); } catch (_) {}
     }
-    this.engine = new webllm.MLCEngine();
-    this.engine.setInitProgressCallback((report: webllm.InitProgressReport) => {
-      onProgress(report.text);
+    // Using CreateMLCEngine factory is more stable than 'new MLCEngine'
+    this.engine = await webllm.CreateMLCEngine(modelId, {
+      initProgressCallback: (report) => onProgress(report.text)
     });
-    this.currentModelId = modelId;
-    await this.engine.reload(modelId);
   }
 
   abort() { this.aborted = true; }
@@ -196,18 +194,25 @@ class AIManager {
     this.currentModelId = null;
   }
   
-  async askQuestion(history: {role: "user"|"ai", content: string}[], newQuestion: string, userName: string, modePrompt: string, maxTokens: number, onUpdate: (text: string) => void): Promise<string> {
+  async askQuestion(
+    history: {role: "user"|"ai", content: string}[], 
+    newQuestion: string, 
+    userName: string, 
+    modePrompt: string, 
+    maxTokens: number, 
+    onUpdate: (text: string) => void,
+    isRetry = false
+  ): Promise<string> {
     if (!this.engine) throw new Error("AI not initialized");
     this.aborted = false;
     
     const messages: webllm.ChatCompletionMessageParam[] = [
       { 
         role: "system", 
-        content: `You are ${userName}'s academic AI. ${modePrompt} Rules: No greetings. Use bullet points, bold, emojis for headers. Code in \`\`\`lang blocks.`
+        content: `You are ${userName}'s academic AI. ${modePrompt} Rules: No greetings. Use bullet points, bold, emojis. Code in \`\`\`lang blocks.`
       }
     ];
 
-    // Only keep last 4 messages to prevent context overflow on small models
     const recentHistory = history.slice(-4);
     for (const msg of recentHistory) {
       messages.push({ role: msg.role === "ai" ? "assistant" : "user", content: msg.content });
@@ -237,11 +242,11 @@ class AIManager {
       onUpdate(fullReply);
       return fullReply;
     } catch (err: any) {
-      // "deleted object" = WASM tokenizer died. Force reload engine and retry once.
-      if (err?.message?.includes("deleted")) {
-        onUpdate("🔄 Engine reset — retrying...");
-        await this.resetEngine();
-        throw new Error("Engine crashed. Please try again — model will auto-reload.");
+      // ADVANCED: Auto-Retry on Tokenizer Crash
+      if (err?.message?.includes("deleted") && !isRetry && this.currentModelId) {
+        onUpdate("🔄 Critical Error: Tokenizer lost. Attempting auto-recovery...");
+        await this.loadModel(this.currentModelId, (p) => onUpdate(`🔄 Recovering: ${p}`));
+        return this.askQuestion(history, newQuestion, userName, modePrompt, maxTokens, onUpdate, true);
       }
       throw err;
     }
