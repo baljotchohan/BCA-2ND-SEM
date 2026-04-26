@@ -468,26 +468,18 @@ export default function StudyDashboard() {
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="glass-panel border border-white/10 rounded-full p-1.5 flex items-center gap-2 pointer-events-auto backdrop-blur-xl shadow-2xl"
+          className="glass-panel border border-white/10 rounded-full p-1.5 flex items-center pointer-events-auto backdrop-blur-xl shadow-2xl"
         >
           <button
-            onClick={() => setTradingMode(false)}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
-              !tradingMode
-                ? "bg-white/10 text-white"
-                : "text-slate-500 hover:text-white"
-            }`}
+            onClick={() => setTradingMode(!tradingMode)}
+            className="px-5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 bg-white/10 hover:bg-white/20"
+            style={{ color: tradingMode ? "var(--trade-green)" : "var(--accent-cyan)" }}
           >
-            Study Mode
-          </button>
-          <button
-            onClick={() => setTradingMode(true)}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
-              tradingMode ? "bg-white/10" : "text-slate-500 hover:text-white"
-            }`}
-            style={{ color: tradingMode ? "var(--trade-green)" : undefined }}
-          >
-            <TrendingUp className="w-3 h-3" /> Trading Mode
+            {tradingMode ? (
+              <><TrendingUp className="w-4 h-4" /> Trading Mode</>
+            ) : (
+              <><BookOpen className="w-4 h-4" /> Study Mode</>
+            )}
           </button>
         </motion.div>
       </div>

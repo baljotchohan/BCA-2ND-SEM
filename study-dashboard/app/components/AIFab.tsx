@@ -132,7 +132,8 @@ const TextRenderer = ({ text }: { text: string }) => {
 const FormattedMessage = ({ text }: { text: string }) => {
   // Regex to extract code blocks: ```lang \n code ```
   const codeRegex = /```([^\n]*)\n([\s\S]*?)```/g;
-  const parts = [];
+  type Part = { type: 'text', content: string } | { type: 'code', lang: string, content: string };
+  const parts: Part[] = [];
   let lastIndex = 0;
   let match;
   
@@ -371,7 +372,7 @@ export default function AIFab() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", bounce: 0.3 }}
-            className="fixed bottom-24 right-4 w-[calc(100vw-2rem)] md:w-[400px] h-[650px] max-h-[85vh] glass-panel rounded-3xl shadow-2xl flex flex-col overflow-hidden z-[60]"
+            className="fixed bottom-24 left-4 right-4 md:left-auto md:right-4 md:w-[400px] h-[650px] max-h-[85vh] glass-panel rounded-3xl shadow-2xl flex flex-col overflow-hidden z-[60]"
           >
             {/* Header */}
             <div className="border-b border-white/5 p-4 flex items-center justify-between bg-gradient-to-r from-white/[0.02] to-transparent shrink-0">
@@ -531,8 +532,8 @@ export default function AIFab() {
                     )}
                     
                     {messages.map((msg, i) => (
-                      <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[90%] md:max-w-[85%] rounded-2xl p-3 text-sm ${
+                      <div key={i} className={`flex w-full ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                        <div className={`max-w-[90%] md:max-w-[85%] rounded-2xl p-3 text-sm text-left ${
                           msg.role === "user" 
                             ? "bg-cyan-500 text-black rounded-tr-sm font-medium" 
                             : "glass-panel border border-white/10 rounded-tl-sm text-slate-200 shadow-lg"
