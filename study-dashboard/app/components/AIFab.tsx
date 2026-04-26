@@ -7,16 +7,16 @@ import * as webllm from "@mlc-ai/web-llm";
 
 // --- Configuration ---
 const MODELS = [
-  { id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC", name: "Mobile Nano 0.5B", size: "~350MB", desc: "Ultra-fast and light. Best for mobile phones." },
+  { id: "SmolLM2-360M-Instruct-q4f16_1-MLC", name: "Ultra-Light Expert", size: "~180MB", desc: "Incredible reasoning in a tiny package. Best for 2GB RAM." },
+  { id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC", name: "Mobile Nano 0.5B", size: "~350MB", desc: "Ultra-fast and light. Best for most mobile phones." },
   { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC", name: "Llama Fast 1B", size: "~500MB", desc: "Lightning fast, great for quick definitions." },
-  { id: "gemma-2-2b-it-q4f16_1-MLC", name: "Gemma Pro 2B", size: "~700MB", desc: "Balanced smarts. The default academic mentor." },
   { id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", name: "Qwen Logic 1.5B", size: "~900MB", desc: "Strong reasoning and coding abilities." }
 ];
 
 const MODES = [
   { id: "fast", name: "⚡ Fast", prompt: "Be brief. Max 3 bullets.", maxTokens: 256 },
   { id: "pro", name: "🧠 Pro", prompt: "Detailed academic answer with examples.", maxTokens: 512 },
-  { id: "thinking", name: "🤔 Think", prompt: "MODE = THINKING. Think step-by-step. Analyze the question deeply across multiple logic levels. Break down complex concepts level-by-level to deliver an exhaustive response.", maxTokens: 1024 }
+  { id: "thinking", name: "🤔 Think", prompt: "REASONING MODE. 1. Break the question into sub-components. 2. Solve each step logically. 3. Synthesize an exhaustive academic explanation with deep insights.", maxTokens: 1024 }
 ];
 
 function parseResponse(text: string) {
@@ -285,7 +285,7 @@ export default function AIFab() {
     
     // Check if on mobile device, if so, default to the smallest model
     if (typeof window !== 'undefined' && window.innerWidth <= 768) {
-      setSelectedModel(MODELS[0].id); // Mobile Nano 0.5B
+      setSelectedModel(MODELS[0].id); // SmolLM2-360M (Ultra-Light)
     }
 
     const savedName = localStorage.getItem("ai_user_name");
