@@ -203,21 +203,13 @@ class AIManager {
     const messages: webllm.ChatCompletionMessageParam[] = [
       { 
         role: "system", 
-        content: `You are an elite, highly structured academic AI engine. The student's name is ${userName}.
-You MUST provide EXTREMELY clean, direct, and structured answers. You have NO conversational personality.
-
-CURRENT OPERATING MODE:
-${modePrompt}
-
-CRITICAL RULES:
-1. NO INTROS OR OUTROS: NEVER say "Hey", "Hello", "Sure", or "Let's look at". Start the very first word with the actual academic answer.
-2. USE EMOJIS FOR HEADERS: Structure your answer using emojis for sections.
-3. CODE BLOCKS: If you write code, ALWAYS wrap it in \`\`\`language and \`\`\` tags. Explain the code clearly underneath the code block.
-4. BULLET POINTS: Write exclusively in highly structured bullet points and bold text.`
+        content: `You are ${userName}'s academic AI. ${modePrompt} Rules: No greetings. Use bullet points, bold text, emojis for headers. Wrap code in \`\`\`lang blocks.`
       }
     ];
 
-    for (const msg of history) {
+    // Only keep last 4 messages to prevent context overflow on small models
+    const recentHistory = history.slice(-4);
+    for (const msg of recentHistory) {
       messages.push({ role: msg.role === "ai" ? "assistant" : "user", content: msg.content });
     }
     messages.push({ role: "user", content: newQuestion });
@@ -225,6 +217,7 @@ CRITICAL RULES:
     const chunks = await this.engine.chat.completions.create({
       messages,
       temperature: 0.7,
+      max_tokens: 512,
       stream: true,
     });
     
