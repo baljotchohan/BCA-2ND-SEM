@@ -7,6 +7,7 @@ import * as webllm from "@mlc-ai/web-llm";
 
 // --- Configuration ---
 const MODELS = [
+  { id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC", name: "Mobile Nano 0.5B", size: "~350MB", desc: "Ultra-fast and light. Best for mobile phones." },
   { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC", name: "Llama Fast 1B", size: "~500MB", desc: "Lightning fast, great for quick definitions." },
   { id: "gemma-2-2b-it-q4f16_1-MLC", name: "Gemma Pro 2B", size: "~700MB", desc: "Balanced smarts. The default academic mentor." },
   { id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", name: "Qwen Logic 1.5B", size: "~900MB", desc: "Strong reasoning and coding abilities." }
@@ -240,10 +241,22 @@ export default function AIFab() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [messages, setMessages] = useState<{role: "user"|"ai", content: string, parsed?: any}[]>([]);
   
+  const [hasWebGPU, setHasWebGPU] = useState<boolean>(true);
+  const [gpuError, setGpuError] = useState<string | null>(null);
+
   const aiRef = useRef<AIManager>(new AIManager());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (typeof navigator !== 'undefined' && !(navigator as any).gpu) {
+      setHasWebGPU(false);
+    }
+    
+    // Check if on mobile device, if so, default to the smallest model
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      setSelectedModel(MODELS[0].id); // Mobile Nano 0.5B
+    }
+
     const savedName = localStorage.getItem("ai_user_name");
     if (savedName) {
       setUserName(savedName);
@@ -272,15 +285,22 @@ export default function AIFab() {
   };
 
   const handleStartAI = async (modelIdToLoad: string = selectedModel) => {
+    if (!hasWebGPU) {
+      setGpuError("WebGPU is not supported by your browser. Please use Chrome on Android, desktop, or enable WebGPU flags.");
+      return;
+    }
     setStep("loading");
     setIsReady(false);
+    setGpuError(null);
     try {
       await aiRef.current.loadModel(modelIdToLoad, (text) => setProgressText(text));
       setIsReady(true);
       setStep("chat");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setProgressText("Failed to load AI model. Please try again or use a supported browser.");
+      setProgressText(`Failed to load: ${err.message || "Unknown error"}`);
+      setGpuError(`Error initializing AI: ${err.message || "Unknown error"}. Try 'Mobile Nano 0.5B' or refresh.`);
+      setStep("consent"); // Fallback to consent screen to show error
     }
   };
 
@@ -448,26 +468,44 @@ export default function AIFab() {
                     To give you instant, private answers, my brain runs entirely in your browser. No data goes to the cloud.
                   </p>
                   
-                  <div className="w-full text-left mt-4 space-y-2">
-                    <label className="text-xs font-semibold text-slate-400 ml-1">Select Engine Model:</label>
-                    <select 
-                      value={selectedModel} 
-                      onChange={(e) => setSelectedModel(e.target.value)}
-                      className="w-full bg-black/50 text-sm text-cyan-400 p-3 rounded-xl outline-none border border-white/10 appearance-none"
-                    >
-                      {MODELS.map(m => <option key={m.id} value={m.id}>{m.name} ({m.size})</option>)}
-                    </select>
-                    <p className="text-[10px] text-slate-500 italic ml-1">
-                      {MODELS.find(m => m.id === selectedModel)?.desc}
-                    </p>
-                  </div>
+                  {!hasWebGPU ? (
+                    <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl text-xs text-left w-full">
+                      <div className="flex items-center gap-2 mb-2 font-bold text-sm">
+                        <AlertTriangle className="w-4 h-4" /> WebGPU Unsupported
+                      </div>
+                      Your browser does not support WebGPU, which is required to run the AI engine locally. <br/><br/>
+                      <b>Mobile Users:</b> Please try using Google Chrome on Android. For iOS/Safari, you may need to enable WebGPU in Experimental Features.
+                    </div>
+                  ) : (
+                    <>
+                      {gpuError && (
+                        <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-3 rounded-xl text-xs text-left w-full mb-2 flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                          <span>{gpuError}</span>
+                        </div>
+                      )}
+                      <div className="w-full text-left mt-4 space-y-2">
+                        <label className="text-xs font-semibold text-slate-400 ml-1">Select Engine Model:</label>
+                        <select 
+                          value={selectedModel} 
+                          onChange={(e) => setSelectedModel(e.target.value)}
+                          className="w-full bg-black/50 text-sm text-cyan-400 p-3 rounded-xl outline-none border border-white/10 appearance-none"
+                        >
+                          {MODELS.map(m => <option key={m.id} value={m.id}>{m.name} ({m.size})</option>)}
+                        </select>
+                        <p className="text-[10px] text-slate-500 italic ml-1">
+                          {MODELS.find(m => m.id === selectedModel)?.desc}
+                        </p>
+                      </div>
 
-                  <button
-                    onClick={() => handleStartAI()}
-                    className="w-full py-3 mt-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black text-sm font-bold shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all"
-                  >
-                    Download & Initialize AI
-                  </button>
+                      <button
+                        onClick={() => handleStartAI()}
+                        className="w-full py-3 mt-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black text-sm font-bold shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all"
+                      >
+                        Download & Initialize AI
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
 
