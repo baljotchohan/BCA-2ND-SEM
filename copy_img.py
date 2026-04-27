@@ -1,8 +1,8 @@
 import shutil
 import os
 
-src = "/Users/baljotchohan/BCA 2nd /BCA-2ND-SEM/MIS.jpeg"
-dst = "/Users/baljotchohan/BCA 2nd /BCA-2ND-SEM/study-dashboard/public/MIS.jpeg"
+src = "/Users/baljotchohan/BCA 2nd /BCA-2ND-SEM/Digital Empowerment .jpeg"
+dst = "/Users/baljotchohan/BCA 2nd /BCA-2ND-SEM/study-dashboard/public/Digital_Empowerment.jpeg"
 
 try:
     shutil.copy2(src, dst)

@@ -1,5 +1,5 @@
 "use client";
-import { Printer, ArrowLeft, AlertTriangle, BookOpen, Flame } from "lucide-react";
+import { Printer, ArrowLeft, AlertTriangle, BookOpen, Flame, CheckCircle2, Check } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 
@@ -8,6 +8,7 @@ const questionsData = [
   {
     id: "Q1",
     section: "SECTION A",
+    inExam: true,
     question: "What is Information System? Explain its characteristics in detail.",
     english: (
       <>
@@ -42,6 +43,7 @@ const questionsData = [
   {
     id: "Q2",
     section: "SECTION A",
+    inExam: true,
     question: "What is Information? Describe its types with relevant examples.",
     english: (
       <>
@@ -74,6 +76,7 @@ const questionsData = [
   {
     id: "Q3",
     section: "SECTION B",
+    inExam: true,
     question: "Define MIS. What are the core components of MIS?",
     english: (
       <>
@@ -105,6 +108,7 @@ const questionsData = [
   {
     id: "Q4",
     section: "SECTION B",
+    inExam: true,
     question: "Explain the process of Decision Making. Differentiate between Structured and Unstructured decisions.",
     english: (
       <>
@@ -156,6 +160,7 @@ const questionsData = [
   {
     id: "Q5",
     section: "SECTION C",
+    inExam: true,
     question: "Describe MIS Development. What are the common pitfalls in MIS implementation?",
     english: (
       <>
@@ -189,6 +194,7 @@ const questionsData = [
   {
     id: "Q6",
     section: "SECTION C",
+    inExam: true,
     question: "Discuss the Analysis and Design phases of Information Systems.",
     english: (
       <>
@@ -220,6 +226,7 @@ const questionsData = [
   {
     id: "Q7",
     section: "SECTION D",
+    inExam: true,
     question: "What is E-Commerce? Discuss its major applications in the modern world.",
     english: (
       <>
@@ -251,6 +258,7 @@ const questionsData = [
   {
     id: "Q8",
     section: "SECTION D",
+    inExam: true,
     question: "What is DSS? Explain its features and how it supports business planning.",
     english: (
       <>
@@ -324,6 +332,7 @@ const questionsData = [
   {
     id: "Q10",
     section: "ADVANCED & EXPECTED",
+    inExam: true,
     question: "Provide a detailed breakdown of the System Development Life Cycle (SDLC).",
     english: (
       <>
@@ -446,6 +455,7 @@ const questionsData = [
   {
     id: "Q14",
     section: "ADVANCED & EXPECTED",
+    inExam: true,
     question: "Explain the comprehensive role of MIS in modern organizations.",
     english: (
       <>
@@ -475,6 +485,7 @@ const questionsData = [
   {
     id: "Q15",
     section: "ADVANCED & EXPECTED",
+    inExam: true,
     question: "Define a System Analyst. Discuss their primary responsibilities and required skill sets.",
     english: (
       <>
@@ -645,6 +656,7 @@ const shortNotesData = [
   },
   {
     title: "(e) Simon Model",
+    inExam: true,
     en: "Herbert Simon's 4-step decision-making model: Intelligence (searching for problems), Design (inventing solutions), Choice (selecting the best), and Implementation.",
     pa: "ਫੈਸਲਾ ਲੈਣ ਦੇ 4 ਕਦਮ: ਸਮੱਸਿਆ ਲੱਭਣਾ (Intelligence), ਹੱਲ ਬਣਾਉਣਾ (Design), ਸਹੀ ਹੱਲ ਚੁਣਨਾ (Choice), ਅਤੇ ਉਸਨੂੰ ਲਾਗੂ ਕਰਨਾ (Implementation)।"
   }
@@ -712,9 +724,18 @@ export default function MISQuestionsPage() {
                     <div className={`${sectionName === 'ADVANCED & EXPECTED' ? 'bg-amber-500' : 'bg-[#4f46e5]'} text-white px-3 py-1.5 rounded-lg font-black text-sm shadow-sm shrink-0 mt-1`}>
                       {q.id}
                     </div>
-                    <h3 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight leading-snug">
-                      {q.question}
-                    </h3>
+                    <div className="flex-1">
+                      {/* @ts-ignore */}
+                      {q.inExam && (
+                        <div className="inline-flex items-center gap-1.5 bg-emerald-500 text-white text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full mb-2 print:border print:border-emerald-500 print:text-emerald-700 print:bg-emerald-50 shadow-sm">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Appeared in Exam
+                        </div>
+                      )}
+                      <h3 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight leading-snug">
+                        {q.question}
+                      </h3>
+                    </div>
                   </div>
 
                   {/* Bilingual Grid */}
@@ -756,6 +777,13 @@ export default function MISQuestionsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {shortNotesData.map((note, idx) => (
               <div key={idx} className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow">
+                {/* @ts-ignore */}
+                {note.inExam && (
+                  <div className="inline-flex items-center gap-1.5 bg-emerald-500 text-white text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full mb-3 print:border print:border-emerald-500 print:text-emerald-700 print:bg-emerald-50 shadow-sm">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Appeared in Exam
+                  </div>
+                )}
                 <h4 className="font-bold text-slate-900 mb-3 text-lg">{note.title}</h4>
                 <p className="text-sm text-slate-700 mb-4 leading-relaxed">{note.en}</p>
                 <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm font-medium border border-blue-100 leading-relaxed">

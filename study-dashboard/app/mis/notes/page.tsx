@@ -1,11 +1,12 @@
 "use client";
-import { Printer, ArrowLeft } from "lucide-react";
+import { Printer, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 
 const topicsData = [
   {
     id: 1,
+    inExam: true,
     title: "INTRODUCTION TO MIS",
     english: (
       <>
@@ -53,6 +54,7 @@ const topicsData = [
   },
   {
     id: 3,
+    inExam: true,
     title: "SYSTEM CONCEPT",
     english: (
       <>
@@ -75,6 +77,7 @@ const topicsData = [
   },
   {
     id: 4,
+    inExam: true,
     title: "CHARACTERISTICS OF SYSTEM",
     english: (
       <>
@@ -103,6 +106,7 @@ const topicsData = [
   },
   {
     id: 5,
+    inExam: true,
     title: "TYPES OF SYSTEM",
     english: (
       <>
@@ -154,6 +158,7 @@ const topicsData = [
   },
   {
     id: 7,
+    inExam: true,
     title: "DECISION MAKING (HERBERT SIMON MODEL)",
     english: (
       <>
@@ -196,6 +201,7 @@ const topicsData = [
   },
   {
     id: 9,
+    inExam: true,
     title: "SDLC (SYSTEM DEVELOPMENT LIFE CYCLE)",
     english: (
       <>
@@ -331,6 +337,7 @@ const topicsData = [
   },
   {
     id: 15,
+    inExam: true,
     title: "DATA MINING",
     english: (
       <>
@@ -394,6 +401,7 @@ const topicsData = [
   },
   {
     id: 18,
+    inExam: true,
     title: "SYSTEM ANALYST",
     english: (
       <>
@@ -461,13 +469,22 @@ export default function MISNotesPage() {
             <div key={topic.id} className="print:break-inside-avoid">
               
               {/* Topic Header */}
-              <div className="flex items-center gap-4 mb-5">
+              <div className="flex items-start gap-4 mb-5">
                 <div className="bg-[#0f172a] text-white w-10 h-10 rounded-lg flex items-center justify-center font-black text-xl shadow-sm shrink-0">
                   {topic.id}
                 </div>
-                <h3 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase">
-                  {topic.title}
-                </h3>
+                <div className="flex-1">
+                  {/* @ts-ignore */}
+                  {topic.inExam && (
+                    <div className="inline-flex items-center gap-1.5 bg-emerald-500 text-white text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full mb-2 print:border print:border-emerald-500 print:text-emerald-700 print:bg-emerald-50 shadow-sm mt-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Appeared in Exam
+                    </div>
+                  )}
+                  <h3 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase">
+                    {topic.title}
+                  </h3>
+                </div>
               </div>
               
               {/* Content Grid */}
