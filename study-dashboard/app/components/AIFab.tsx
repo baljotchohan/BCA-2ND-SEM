@@ -410,22 +410,73 @@ export default function AIFab() {
         }
       } catch(e) { console.error("RAG error", e); }
 
-      // 2. Web Search (Client-Side CORS Proxy to bypass GitHub Pages static export limits)
+      // 2. Advanced Multi-Query Web Search
       try {
-        const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(question)}&format=json&no_html=1&skip_disambig=1&t=bcastudy`;
-        const searchRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(ddgUrl)}`);
-        const searchData = await searchRes.json();
-        if (searchData && searchData.AbstractText) {
-           contextString += "WEB SEARCH RESULTS:\n" + searchData.AbstractText + "\nSource: " + searchData.AbstractSource + "\n\n";
-           currentSources.push({ title: searchData.AbstractSource || "Source", url: searchData.AbstractURL });
+        type DDGTopic = { Text?: string; FirstURL?: string };
+        type DDGResult = { AbstractText?: string; AbstractSource?: string; AbstractURL?: string; RelatedTopics?: DDGTopic[]; Answer?: string; Definition?: string; DefinitionURL?: string; Heading?: string };
+
+        // --- Query Expansion: Build multiple search angles from the question ---
+        const words = question.toLowerCase().replace(/[?!.,]/g, '').split(' ');
+        const stopWords = new Set(['what','is','are','the','a','an','how','why','when','where','who','which','explain','define','describe','tell','me','about','of','in','on','for','and','or','but','to']);
+        const keywords = words.filter(w => w.length > 2 && !stopWords.has(w));
+
+        // 3 different query variants for maximum coverage
+        const queries = [
+          question,                                                              // exact user question
+          keywords.slice(0, 5).join(' ') + ' tutorial',                        // keyword + tutorial
+          keywords.slice(0, 4).join(' ') + ' BCA computer science',            // academic angle
+        ].filter((q, i, arr) => arr.indexOf(q) === i && q.trim().length > 3); // deduplicate
+
+        const proxyBase = 'https://api.allorigins.win/raw?url=';
+        const ddgBase = 'https://api.duckduckgo.com/?format=json&no_html=1&skip_disambig=1&t=bcastudy&q=';
+
+        // Fire all queries in parallel
+        const searchResults: DDGResult[] = await Promise.all(
+          queries.map(q =>
+            fetch(proxyBase + encodeURIComponent(ddgBase + encodeURIComponent(q)))
+              .then(r => r.ok ? r.json() as Promise<DDGResult> : Promise.resolve({} as DDGResult))
+              .catch(() => ({} as DDGResult))
+          )
+        );
+
+        const seenUrls = new Set<string>();
+        const addSource = (title: string, url: string) => {
+          if (url && !seenUrls.has(url)) { seenUrls.add(url); currentSources.push({ title, url }); }
+        };
+
+        let webContext = '';
+
+        for (const data of searchResults) {
+          if (!data) continue;
+
+          // Direct Answer (e.g. "What is RAM?")
+          if (data.Answer && !webContext.includes(data.Answer)) {
+            webContext += `DIRECT ANSWER: ${data.Answer}\n\n`;
+          }
+          // Definition (Wikipedia-style instant answer)
+          if (data.Definition && !webContext.includes(data.Definition)) {
+            webContext += `DEFINITION: ${data.Definition}\n`;
+            if (data.DefinitionURL) addSource(data.Heading || 'Definition', data.DefinitionURL);
+          }
+          // Abstract (main knowledge paragraph)
+          if (data.AbstractText && !webContext.includes(data.AbstractText)) {
+            webContext += `EXPLANATION (${data.AbstractSource || 'Web'}):\n${data.AbstractText}\n\n`;
+            if (data.AbstractURL) addSource(data.AbstractSource || 'Web Source', data.AbstractURL);
+          }
+          // Related Topics (side-bar links with descriptions)
+          if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+            const freshTopics = data.RelatedTopics
+              .filter((t: DDGTopic) => t.Text && t.FirstURL && !seenUrls.has(t.FirstURL ?? ''))
+              .slice(0, 3);
+            if (freshTopics.length) {
+              webContext += 'RELATED TOPICS:\n' + freshTopics.map((t: DDGTopic) => `• ${t.Text}`).join('\n') + '\n\n';
+              freshTopics.forEach((t: DDGTopic) => addSource((t.Text ?? '').substring(0, 30) + '...', t.FirstURL ?? ''));
+            }
+          }
         }
-        if (searchData && searchData.RelatedTopics && searchData.RelatedTopics.length > 0) {
-           const related = searchData.RelatedTopics.filter((t: {Text?: string}) => t.Text).slice(0, 3);
-           contextString += "RELATED INFO:\n" + related.map((t: {Text?: string}) => t.Text).join('\n') + "\n\n";
-           related.forEach((t: {Text?: string, FirstURL?: string}) => {
-              if(t.FirstURL) currentSources.push({ title: (t.Text ?? '').substring(0, 25)+'...', url: t.FirstURL });
-           });
-        }
+
+        if (webContext.trim()) contextString += 'WEB SEARCH RESULTS:\n' + webContext;
+
       } catch(e) { console.error("Search error", e); }
 
       const enrichedQuestion = contextString 
