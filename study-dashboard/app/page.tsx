@@ -13,6 +13,7 @@ import {
   TrendingUp,
   X,
   Filter,
+  CheckCircle2,
   Lock,
   type LucideIcon,
 } from "lucide-react";
@@ -39,7 +40,7 @@ const subjects: Subject[] = [
     id: "s1",
     name: "Management Info Systems",
     code: "MIS-201",
-    progress: 95,
+    progress: 100,
     displayDate: "April 27",
     examDate: "2026-04-27T09:30:00",
     time: "9:30 AM",
@@ -47,7 +48,7 @@ const subjects: Subject[] = [
     icon: TrendingUp,
     locked: false,
     syllabus: {
-      imageUrl: "/BCA-2ND-SEM/MIS.jpeg"
+      imageUrl: "/MIS.jpeg"
     }
   },
   {
@@ -60,7 +61,10 @@ const subjects: Subject[] = [
     time: "9:30 AM",
     color: "from-blue-500/20 to-transparent",
     icon: BookOpen,
-    locked: true,
+    locked: false,
+    syllabus: {
+      imageUrl: "/Digital_Empowerment.jpeg"
+    }
   },
   {
     id: "s3",
@@ -248,19 +252,21 @@ export default function StudyDashboard() {
   useEffect(() => {
     if (!mounted) return;
 
-    // Filter exams that are in the future
+    // Include all exams, marking those in the past
     const nowTime = new Date().getTime();
-    const futureExams = subjects.filter(
-      (s) => new Date(s.examDate).getTime() > nowTime
-    );
-    futureExams.sort(
+    const sortedExams = [...subjects].sort(
       (a, b) => new Date(a.examDate).getTime() - new Date(b.examDate).getTime()
     );
 
-    setUpcomingExams(futureExams);
+    setUpcomingExams(sortedExams);
 
+    const futureExams = sortedExams.filter(
+      (s) => new Date(s.examDate).getTime() > nowTime
+    );
     if (futureExams.length > 0) {
       setNextExam(futureExams[0]);
+    } else {
+      setNextExam(null);
     }
   }, [mounted]);
 
@@ -363,28 +369,11 @@ export default function StudyDashboard() {
                       <div className="flex items-center gap-2 text-xs text-slate-500 bg-black/30 w-max px-2 py-1 rounded-md border border-white/5">
                         <Lock className="w-3 h-3" /> Locked
                       </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-slate-500">Progress</span>
-                          <span className="text-slate-300 font-mono">
-                            {subject.progress}%
-                          </span>
-                        </div>
-                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${subject.progress}%` }}
-                            transition={{
-                              duration: 1,
-                              delay: 0.2 + idx * 0.1,
-                            }}
-                            className="h-full rounded-full"
-                            style={{ backgroundColor: accentColor }}
-                          />
-                        </div>
+                    ) : subject.progress === 100 ? (
+                      <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-400/10 w-max px-2.5 py-1.5 rounded-md border border-emerald-400/20 shadow-sm shadow-emerald-900/20">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Completed
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </motion.div>
               ))}
@@ -411,48 +400,61 @@ export default function StudyDashboard() {
 
             {upcomingExams.length > 0 ? (
               <div className="space-y-6 relative before:absolute before:inset-0 before:ml-[11px] before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-white/10 before:to-transparent">
-                {upcomingExams.map((sub, i) => (
-                  <div
-                    key={i}
-                    className="relative flex items-center group is-active"
-                  >
-                    {/* Timeline Dot */}
+                {upcomingExams.map((sub, i) => {
+                  const isPast = new Date(sub.examDate).getTime() < new Date().getTime();
+                  const isNext = nextExam?.id === sub.id;
+                  
+                  return (
                     <div
-                      className="flex items-center justify-center w-6 h-6 rounded-full border border-white/10 bg-[#050505] shadow shrink-0 z-10 transition-colors duration-300"
-                      style={{
-                        boxShadow: i === 0 ? `0 0 10px ${accentGlow}` : "none",
-                        borderColor:
-                          i === 0 ? accentColor : "rgba(255,255,255,0.1)",
-                      }}
+                      key={i}
+                      className={`relative flex items-center group ${isPast ? "opacity-50" : ""}`}
                     >
+                      {/* Timeline Dot */}
                       <div
-                        className={`w-2 h-2 rounded-full ${
-                          i === 0 ? "animate-pulse" : ""
-                        }`}
+                        className="flex items-center justify-center w-6 h-6 rounded-full border border-white/10 bg-[#050505] shadow shrink-0 z-10 transition-colors duration-300"
                         style={{
-                          backgroundColor: i === 0 ? accentColor : "#334155",
+                          boxShadow: isNext ? `0 0 10px ${accentGlow}` : "none",
+                          borderColor:
+                            isNext ? accentColor : "rgba(255,255,255,0.1)",
                         }}
-                      />
-                    </div>
-
-                    {/* Content */}
-                    <div className="w-[calc(100%-2rem)] glass-panel border border-white/5 p-3 rounded-xl ml-4 shadow-sm group-hover:border-white/10 transition-colors">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-1">
-                        <span className="text-[10px] font-mono text-slate-400">
-                          {sub.displayDate}
-                        </span>
-                        {sub.time && (
-                          <span className="text-[9px] w-max px-1.5 py-0.5 bg-white/5 rounded text-slate-300">
-                            {sub.time}
-                          </span>
+                      >
+                        {isPast ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                        ) : (
+                          <div
+                            className={`w-2 h-2 rounded-full ${
+                              isNext ? "animate-pulse" : ""
+                            }`}
+                            style={{
+                              backgroundColor: isNext ? accentColor : "#334155",
+                            }}
+                          />
                         )}
                       </div>
-                      <h4 className="text-xs font-medium text-slate-200 truncate">
-                        {sub.name}
-                      </h4>
+
+                      {/* Content */}
+                      <div className={`w-[calc(100%-2rem)] glass-panel border border-white/5 p-3 rounded-xl ml-4 shadow-sm group-hover:border-white/10 transition-colors ${isPast ? "bg-emerald-500/5" : ""}`}>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-1">
+                          <span className="text-[10px] font-mono text-slate-400">
+                            {sub.displayDate}
+                          </span>
+                          {isPast ? (
+                            <span className="text-[9px] w-max px-1.5 py-0.5 bg-emerald-500/20 rounded text-emerald-400 font-bold">
+                              COMPLETED
+                            </span>
+                          ) : sub.time && (
+                            <span className="text-[9px] w-max px-1.5 py-0.5 bg-white/5 rounded text-slate-300">
+                              {sub.time}
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="text-xs font-medium text-slate-200 truncate">
+                          {sub.name}
+                        </h4>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center text-sm text-slate-500 py-8">
@@ -533,7 +535,7 @@ export default function StudyDashboard() {
                 {[
                   { id: "questions", label: "Important Questions" },
                   { id: "notes", label: "PDF Notes" },
-                  { id: "units", label: "Syllabus" },
+                  { id: "units", label: activeSubject.id === "s2" ? "Paper Structure" : "Syllabus" },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -567,9 +569,9 @@ export default function StudyDashboard() {
                       exit={{ opacity: 0, y: -10 }}
                       className="space-y-6 pb-6"
                     >
-                      {activeSubject.id === "s1" ? (
+                      {["s1", "s2"].includes(activeSubject.id) ? (
                         <div className="pt-2">
-                          <Link href="/mis/questions">
+                          <Link href={`/${activeSubject.id === "s1" ? "mis" : "digital-empowerment"}/questions`}>
                             <div className="border border-emerald-500/30 rounded-2xl p-6 bg-gradient-to-br from-emerald-900/20 to-transparent hover:border-emerald-400/50 hover:from-emerald-900/30 transition-all cursor-pointer group relative overflow-hidden">
                               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-bl-full -z-10 group-hover:bg-emerald-500/20 transition-colors"></div>
                               <div className="flex items-center justify-between mb-4">
@@ -615,9 +617,9 @@ export default function StudyDashboard() {
                       exit={{ opacity: 0, y: -10 }}
                       className="space-y-4 pb-6"
                     >
-                      {activeSubject.id === "s1" ? (
+                      {["s1", "s2"].includes(activeSubject.id) ? (
                         <div className="pt-2">
-                          <Link href="/mis/notes">
+                          <Link href={`/${activeSubject.id === "s1" ? "mis" : "digital-empowerment"}/notes`}>
                             <div className="border border-emerald-500/30 rounded-2xl p-6 bg-gradient-to-br from-emerald-900/20 to-transparent hover:border-emerald-400/50 hover:from-emerald-900/30 transition-all cursor-pointer group relative overflow-hidden">
                               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-bl-full -z-10 group-hover:bg-emerald-500/20 transition-colors"></div>
                               <div className="flex items-center justify-between mb-4">
@@ -625,7 +627,7 @@ export default function StudyDashboard() {
                                   <div className="bg-emerald-500/20 text-emerald-400 p-2 rounded-lg">
                                     <BookOpen className="w-6 h-6" />
                                   </div>
-                                  <h3 className="text-xl font-bold text-white tracking-wide">MIS MASTER NOTES</h3>
+                                  <h3 className="text-xl font-bold text-white tracking-wide">{activeSubject.code} MASTER NOTES</h3>
                                 </div>
                                 <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider border border-emerald-500/20">
                                   BCA-DSC-4
@@ -665,7 +667,7 @@ export default function StudyDashboard() {
                       {activeSubject.syllabus?.imageUrl ? (
                         <div className="glass-panel p-2 rounded-2xl border border-white/5 bg-white/[0.01]">
                           <img 
-                            src={activeSubject.syllabus.imageUrl} 
+                            src={activeSubject.syllabus.imageUrl.startsWith('/') ? activeSubject.syllabus.imageUrl : `/${activeSubject.syllabus.imageUrl}`} 
                             alt={`${activeSubject.name} Syllabus`} 
                             className="w-full h-auto rounded-xl"
                           />
