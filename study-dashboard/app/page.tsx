@@ -667,7 +667,7 @@ export default function StudyDashboard() {
                       {activeSubject.syllabus?.imageUrl ? (
                         <div className="glass-panel p-2 rounded-2xl border border-white/5 bg-white/[0.01]">
                           <img 
-                            src={activeSubject.syllabus.imageUrl.startsWith('/') ? activeSubject.syllabus.imageUrl : `/${activeSubject.syllabus.imageUrl}`} 
+                            src={`${process.env.NODE_ENV === 'production' ? '/BCA-2ND-SEM' : ''}${activeSubject.syllabus.imageUrl.startsWith('/') ? activeSubject.syllabus.imageUrl : `/${activeSubject.syllabus.imageUrl}`}`} 
                             alt={`${activeSubject.name} Syllabus`} 
                             className="w-full h-auto rounded-xl"
                           />
