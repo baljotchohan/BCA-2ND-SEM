@@ -410,9 +410,10 @@ export default function AIFab() {
         }
       } catch(e) { console.error("RAG error", e); }
 
-      // 2. Web Search
+      // 2. Web Search (Client-Side CORS Proxy to bypass GitHub Pages static export limits)
       try {
-        const searchRes = await fetch(`/api/search?q=${encodeURIComponent(question)}`);
+        const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(question)}&format=json&no_html=1&skip_disambig=1&t=bcastudy`;
+        const searchRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(ddgUrl)}`);
         const searchData = await searchRes.json();
         if (searchData && searchData.AbstractText) {
            contextString += "WEB SEARCH RESULTS:\n" + searchData.AbstractText + "\nSource: " + searchData.AbstractSource + "\n\n";
