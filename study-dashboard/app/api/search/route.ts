@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
     });
     const data = await res.json();
     return NextResponse.json(data);
-  } catch (err: any) {
-    return NextResponse.json({ error: `Search failed: ${err.message}` }, { status: 500 });
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: `Search failed: ${errMsg}` }, { status: 500 });
   }
 }

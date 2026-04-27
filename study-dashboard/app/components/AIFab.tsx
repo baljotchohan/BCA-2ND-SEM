@@ -255,8 +255,8 @@ class AIManager {
       }
       onUpdate(fullReply);
       return fullReply;
-    } catch (err: any) {
-      const errMsg = err?.message || "";
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "";
       // Handle both "deleted" and "disposed" errors (WASM memory crashes)
       if ((errMsg.includes("deleted") || errMsg.includes("disposed")) && !isRetry && this.currentModelId) {
         onUpdate("🔄 Memory Limit Hit. Recovering AI context...");
@@ -289,7 +289,7 @@ export default function AIFab() {
   
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [messages, setMessages] = useState<{role: "user"|"ai", content: string, parsed?: any, sources?: {title: string, url: string}[]}[]>([]);
+  const [messages, setMessages] = useState<{role: "user"|"ai", content: string, parsed?: Record<string, unknown>, sources?: {title: string, url: string}[]}[]>([]);
   
   const [hasWebGPU, setHasWebGPU] = useState<boolean>(true);
   const [gpuError, setGpuError] = useState<string | null>(null);
@@ -299,7 +299,7 @@ export default function AIFab() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (typeof navigator !== 'undefined' && !(navigator as any).gpu) {
+    if (typeof navigator !== 'undefined' && !('gpu' in navigator)) {
       setHasWebGPU(false);
     }
     
@@ -352,10 +352,11 @@ export default function AIFab() {
       });
       setIsReady(true);
       setStep("chat");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setProgressText(`Failed to load: ${err.message || "Unknown error"}`);
-      setGpuError(`Error initializing AI: ${err.message || "Unknown error"}. Try refreshing or check your RAM limitations.`);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setProgressText(`Failed to load: ${errMsg || "Unknown error"}`);
+      setGpuError(`Error initializing AI: ${errMsg || "Unknown error"}. Try refreshing or check your RAM limitations.`);
       setStep("consent"); // Fallback to consent screen to show error
     }
   };
@@ -380,7 +381,7 @@ export default function AIFab() {
     
     const mode = MODES.find(m => m.id === selectedMode);
     const modePrompt = mode?.prompt || "";
-    const maxTokens = (mode as any)?.maxTokens || 512;
+    const maxTokens = mode?.maxTokens || 512;
     
     try {
       let contextString = "";
@@ -418,9 +419,9 @@ export default function AIFab() {
            currentSources.push({ title: searchData.AbstractSource || "Source", url: searchData.AbstractURL });
         }
         if (searchData && searchData.RelatedTopics && searchData.RelatedTopics.length > 0) {
-           const related = searchData.RelatedTopics.filter((t:any) => t.Text).slice(0, 3);
-           contextString += "RELATED INFO:\n" + related.map((t:any) => t.Text).join('\n') + "\n\n";
-           related.forEach((t:any) => {
+           const related = searchData.RelatedTopics.filter((t: {Text?: string}) => t.Text).slice(0, 3);
+           contextString += "RELATED INFO:\n" + related.map((t: {Text?: string}) => t.Text).join('\n') + "\n\n";
+           related.forEach((t: {Text?: string, FirstURL?: string}) => {
               if(t.FirstURL) currentSources.push({ title: t.Text.substring(0, 25)+'...', url: t.FirstURL });
            });
         }
@@ -444,9 +445,9 @@ export default function AIFab() {
         newMsgs[newMsgs.length - 1] = { role: "ai", content: fullResponse, parsed, sources: currentSources };
         return newMsgs;
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Generation error:", err);
-      const errorMsg = err?.message || "Unknown error";
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
       setMessages(prev => {
         const newMsgs = [...prev];
         newMsgs[newMsgs.length - 1] = { role: "ai", content: `⚠️ Error: ${errorMsg}. Try asking again or switch to a smaller model.` };
