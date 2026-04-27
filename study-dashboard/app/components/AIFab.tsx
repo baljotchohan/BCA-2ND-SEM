@@ -211,10 +211,14 @@ class AIManager {
       // EXTREME MEMORY FIX: Clear internal KV cache before every question to save RAM
       try { await this.engine.resetChat(); } catch(e) {}
 
+      // Real-time date/time context injected into every prompt
+      const now = new Date();
+      const timeCtx = `Current Date: ${now.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. Current Time: ${now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })} IST.`;
+
       const messages: webllm.ChatCompletionMessageParam[] = [
         { 
           role: "system", 
-          content: `You are ${userName}'s academic AI. ${modePrompt} Rules: No greetings. Bullet points. Code in \`\`\`lang blocks.`
+          content: `You are ${userName}'s real-time academic AI assistant. ${timeCtx} You have access to live web search results injected into the user's question — treat them as current, up-to-date facts. ${modePrompt} Rules: Never say you don't know the date/time. Bullet points. Code in \`\`\`lang blocks. Always prioritise web search context over your training data when available.`
         }
       ];
 
@@ -477,11 +481,32 @@ export default function AIFab() {
 
         if (webContext.trim()) contextString += 'WEB SEARCH RESULTS:\n' + webContext;
 
+        // --- Wikipedia API: extra factual depth ---
+        try {
+          const wikiKeywords = keywords.slice(0, 3).join('_');
+          if (wikiKeywords) {
+            const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiKeywords)}`;
+            const wikiRes = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(wikiUrl));
+            const wikiData = await wikiRes.json();
+            if (wikiData && wikiData.extract && !contextString.includes(wikiData.extract.substring(0, 30))) {
+              contextString += `WIKIPEDIA SUMMARY (${wikiData.title}):\n${wikiData.extract}\n\n`;
+              if (wikiData.content_urls?.desktop?.page) {
+                const seenWiki = currentSources.some(s => s.url === wikiData.content_urls.desktop.page);
+                if (!seenWiki) currentSources.push({ title: `Wikipedia: ${wikiData.title}`, url: wikiData.content_urls.desktop.page });
+              }
+            }
+          }
+        } catch(e) { console.error("Wikipedia error", e); }
+
       } catch(e) { console.error("Search error", e); }
 
+      // Inject real-time timestamp into context
+      const rtNow = new Date();
+      const rtCtx = `[LIVE DATA — Retrieved: ${rtNow.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} at ${rtNow.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })} IST]`;
+
       const enrichedQuestion = contextString 
-        ? `User Question: ${question}\n\nCONTEXT FOR ANSWERING:\n${contextString}\n\nPlease use the context provided above to answer the user's question accurately. If the context doesn't have the answer, use your own knowledge.`
-        : question;
+        ? `User Question: ${question}\n\n${rtCtx}\nCONTEXT FOR ANSWERING (from live web search + study materials):\n${contextString}\n\nUse the above real-time context to answer accurately and up to date. If asked about today's date/time, use the timestamp above. If context is insufficient, use training knowledge but note it may be older.`
+        : `User Question: ${question}\n\n${rtCtx}`;
 
       const fullResponse = await aiRef.current.askQuestion(historyToPass, enrichedQuestion, userName, modePrompt, maxTokens, (partial) => {
         setMessages(prev => {
