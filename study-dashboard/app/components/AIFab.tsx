@@ -423,7 +423,7 @@ export default function AIFab() {
            const related = searchData.RelatedTopics.filter((t: {Text?: string}) => t.Text).slice(0, 3);
            contextString += "RELATED INFO:\n" + related.map((t: {Text?: string}) => t.Text).join('\n') + "\n\n";
            related.forEach((t: {Text?: string, FirstURL?: string}) => {
-              if(t.FirstURL) currentSources.push({ title: t.Text.substring(0, 25)+'...', url: t.FirstURL });
+              if(t.FirstURL) currentSources.push({ title: (t.Text ?? '').substring(0, 25)+'...', url: t.FirstURL });
            });
         }
       } catch(e) { console.error("Search error", e); }
@@ -728,7 +728,7 @@ export default function AIFab() {
                             <p>{msg.content}</p>
                           ) : (
                             <div className="space-y-3">
-                              <FormattedMessage text={msg.parsed ? msg.parsed.mainText : msg.content} />
+                              <FormattedMessage text={msg.parsed ? String(msg.parsed.mainText ?? '') : msg.content} />
                               
                               {/* RENDER SOURCES */}
                               {msg.sources && msg.sources.length > 0 && (
