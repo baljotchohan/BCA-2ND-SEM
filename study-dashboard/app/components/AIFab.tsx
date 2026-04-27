@@ -7,10 +7,7 @@ import * as webllm from "@mlc-ai/web-llm";
 
 // --- Configuration ---
 const MODELS = [
-  { id: "SmolLM2-360M-Instruct-q4f16_1-MLC", name: "Ultra-Light Expert", size: "~180MB", desc: "Incredible reasoning in a tiny package. Best for 2GB RAM." },
-  { id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC", name: "Mobile Nano 0.5B", size: "~350MB", desc: "Ultra-fast and light. Best for most mobile phones." },
-  { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC", name: "Llama Fast 1B", size: "~500MB", desc: "Lightning fast, great for quick definitions." },
-  { id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", name: "Qwen Logic 1.5B", size: "~900MB", desc: "Strong reasoning and coding abilities." }
+  { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC", name: "Llama 3.2 Nano (1B)", size: "~500MB", desc: "Ultra-fast ~500MB download. Bypasses all browser locks and caching bugs." }
 ];
 
 const MODES = [
@@ -176,13 +173,13 @@ class AIManager {
     return _aiManagerInstance;
   }
   
-  async loadModel(modelId: string, onProgress: (progress: string) => void) {
+  async loadModel(modelId: string, onProgress: (progressText: string, progressValue?: number) => void) {
     this.currentModelId = modelId;
     if (this.engine) {
       try { await this.engine.unload(); } catch (_) {}
     }
     this.engine = await webllm.CreateMLCEngine(modelId, {
-      initProgressCallback: (report) => onProgress(report.text)
+      initProgressCallback: (report) => onProgress(report.text, report.progress)
     });
   }
 
@@ -283,18 +280,20 @@ export default function AIFab() {
   const [step, setStep] = useState<"greeting" | "consent" | "loading" | "chat">("greeting");
   
   const [progressText, setProgressText] = useState("");
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const [isReady, setIsReady] = useState(false);
   
   // Settings
-  const [selectedModel, setSelectedModel] = useState(MODELS[1].id);
+  const [selectedModel, setSelectedModel] = useState(MODELS[0].id);
   const [selectedMode, setSelectedMode] = useState(MODES[1].id);
   
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [messages, setMessages] = useState<{role: "user"|"ai", content: string, parsed?: any}[]>([]);
+  const [messages, setMessages] = useState<{role: "user"|"ai", content: string, parsed?: any, sources?: {title: string, url: string}[]}[]>([]);
   
   const [hasWebGPU, setHasWebGPU] = useState<boolean>(true);
   const [gpuError, setGpuError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
 
   const aiRef = useRef<AIManager>(AIManager.getInstance());
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -306,7 +305,8 @@ export default function AIFab() {
     
     // Check if on mobile device, if so, default to the smallest model
     if (typeof window !== 'undefined' && window.innerWidth <= 768) {
-      setSelectedModel(MODELS[0].id); // SmolLM2-360M (Ultra-Light)
+      setSelectedModel(MODELS[0].id); // Default model on mobile (blocked anyway)
+      setIsMobile(true);
     }
 
     const savedName = localStorage.getItem("ai_user_name");
@@ -343,21 +343,26 @@ export default function AIFab() {
     }
     setStep("loading");
     setIsReady(false);
+    setDownloadProgress(0);
     setGpuError(null);
     try {
-      await aiRef.current.loadModel(modelIdToLoad, (text) => setProgressText(text));
+      await aiRef.current.loadModel(modelIdToLoad, (text, prog) => {
+        setProgressText(text);
+        if (prog !== undefined) setDownloadProgress(prog);
+      });
       setIsReady(true);
       setStep("chat");
     } catch (err: any) {
       console.error(err);
       setProgressText(`Failed to load: ${err.message || "Unknown error"}`);
-      setGpuError(`Error initializing AI: ${err.message || "Unknown error"}. Try 'Mobile Nano 0.5B' or refresh.`);
+      setGpuError(`Error initializing AI: ${err.message || "Unknown error"}. Try refreshing or check your RAM limitations.`);
       setStep("consent"); // Fallback to consent screen to show error
     }
   };
 
   const switchModel = (newModelId: string) => {
     setSelectedModel(newModelId);
+    setDownloadProgress(0);
     handleStartAI(newModelId); // triggers reload screen
   };
 
@@ -371,17 +376,64 @@ export default function AIFab() {
     const historyToPass = messages.map(m => ({ role: m.role, content: m.content }));
     setMessages(prev => [...prev, { role: "user", content: question }]);
     setIsGenerating(true);
-    setMessages(prev => [...prev, { role: "ai", content: "⏳ Generating..." }]);
+    setMessages(prev => [...prev, { role: "ai", content: "🔍 Gathering context and searching the web..." }]);
     
     const mode = MODES.find(m => m.id === selectedMode);
     const modePrompt = mode?.prompt || "";
     const maxTokens = (mode as any)?.maxTokens || 512;
     
     try {
-      const fullResponse = await aiRef.current.askQuestion(historyToPass, question, userName, modePrompt, maxTokens, (partial) => {
+      let contextString = "";
+      const currentSources: {title: string, url: string}[] = [];
+      
+      // 1. Fetch Local Context (RAG)
+      try {
+        const [deNotes, misNotes, misQs] = await Promise.all([
+          fetch('/DE_Topics_Detailed.md').then(r => r.ok ? r.text() : ""),
+          fetch('/MIS_Topics_Detailed.md').then(r => r.ok ? r.text() : ""),
+          fetch('/MIS_Important_Questions.md').then(r => r.ok ? r.text() : "")
+        ]);
+        const allText = `${deNotes}\n\n${misNotes}\n\n${misQs}`;
+        if (allText.trim()) {
+           const paragraphs = allText.split('\n\n');
+           const keywords = question.toLowerCase().split(' ').filter(w => w.length > 3);
+           const scored = paragraphs.map(p => {
+               const lower = p.toLowerCase();
+               const score = keywords.reduce((acc, k) => acc + (lower.includes(k) ? 1 : 0), 0);
+               return { p, score };
+           }).filter(p => p.score > 0).sort((a,b) => b.score - a.score);
+           const bestContext = scored.slice(0, 3).map(x => x.p).join('\n...\n');
+           if (bestContext) {
+              contextString += "STUDY CONTEXT:\n" + bestContext + "\n\n";
+           }
+        }
+      } catch(e) { console.error("RAG error", e); }
+
+      // 2. Web Search
+      try {
+        const searchRes = await fetch(`/api/search?q=${encodeURIComponent(question)}`);
+        const searchData = await searchRes.json();
+        if (searchData && searchData.AbstractText) {
+           contextString += "WEB SEARCH RESULTS:\n" + searchData.AbstractText + "\nSource: " + searchData.AbstractSource + "\n\n";
+           currentSources.push({ title: searchData.AbstractSource || "Source", url: searchData.AbstractURL });
+        }
+        if (searchData && searchData.RelatedTopics && searchData.RelatedTopics.length > 0) {
+           const related = searchData.RelatedTopics.filter((t:any) => t.Text).slice(0, 3);
+           contextString += "RELATED INFO:\n" + related.map((t:any) => t.Text).join('\n') + "\n\n";
+           related.forEach((t:any) => {
+              if(t.FirstURL) currentSources.push({ title: t.Text.substring(0, 25)+'...', url: t.FirstURL });
+           });
+        }
+      } catch(e) { console.error("Search error", e); }
+
+      const enrichedQuestion = contextString 
+        ? `User Question: ${question}\n\nCONTEXT FOR ANSWERING:\n${contextString}\n\nPlease use the context provided above to answer the user's question accurately. If the context doesn't have the answer, use your own knowledge.`
+        : question;
+
+      const fullResponse = await aiRef.current.askQuestion(historyToPass, enrichedQuestion, userName, modePrompt, maxTokens, (partial) => {
         setMessages(prev => {
           const newMsgs = [...prev];
-          newMsgs[newMsgs.length - 1] = { role: "ai", content: partial };
+          newMsgs[newMsgs.length - 1] = { role: "ai", content: partial, sources: currentSources };
           return newMsgs;
         });
       });
@@ -389,7 +441,7 @@ export default function AIFab() {
       const parsed = parseResponse(fullResponse);
       setMessages(prev => {
         const newMsgs = [...prev];
-        newMsgs[newMsgs.length - 1] = { role: "ai", content: fullResponse, parsed };
+        newMsgs[newMsgs.length - 1] = { role: "ai", content: fullResponse, parsed, sources: currentSources };
         return newMsgs;
       });
     } catch (err: any) {
@@ -474,7 +526,36 @@ export default function AIFab() {
             {/* Main Content Area */}
             <div className="flex-1 overflow-hidden flex flex-col relative bg-[#050505]/40">
               
-              {/* STEP 1: GREETING & NAME INPUT */}
+              {isMobile ? (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-6 overflow-y-auto custom-scrollbar"
+                >
+                  <div className="w-24 h-24 mx-auto bg-amber-500/10 rounded-full flex items-center justify-center border-2 border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+                    <AlertTriangle className="w-10 h-10 text-amber-500" />
+                  </div>
+                  <div className="space-y-4">
+                    <h2 className="text-2xl font-bold text-amber-400 tracking-tight">
+                      Laptop Required
+                    </h2>
+                    <p className="text-slate-300 text-sm leading-relaxed">
+                      Our advanced AI runs locally on your device's hardware to ensure zero data collection and infinite queries. Mobile phones do not have enough memory to run this.
+                    </p>
+                    <div className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 p-4 rounded-xl text-sm font-medium">
+                      Please switch to a <span className="font-bold text-white">Laptop or Desktop computer</span> to unlock <span className="font-bold text-white">Free & Unlimited AI Usage</span>.
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleOpen}
+                    className="w-full py-4 mt-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-bold transition-all"
+                  >
+                    Close Assistant
+                  </button>
+                </motion.div>
+              ) : (
+                <>
+                  {/* STEP 1: GREETING & NAME INPUT */}
               {step === "greeting" && (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -583,7 +664,10 @@ export default function AIFab() {
                     {progressText || "Loading WebLLM..."}
                   </p>
                   <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-cyan-500 w-1/2 animate-pulse rounded-full" />
+                    <div 
+                      className="h-full bg-cyan-500 transition-all duration-300 rounded-full" 
+                      style={{ width: `${Math.round(downloadProgress * 100)}%` }}
+                    />
                   </div>
                 </div>
               )}
@@ -643,6 +727,37 @@ export default function AIFab() {
                           ) : (
                             <div className="space-y-3">
                               <FormattedMessage text={msg.parsed ? msg.parsed.mainText : msg.content} />
+                              
+                              {/* RENDER SOURCES */}
+                              {msg.sources && msg.sources.length > 0 && (
+                                <div className="mt-4 pt-3 border-t border-white/10">
+                                  <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Sources Analyzed</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {msg.sources.map((src, idx) => {
+                                      let domain = "web";
+                                      try { domain = new URL(src.url).hostname; } catch(_) {}
+                                      
+                                      return (
+                                        <a 
+                                          key={idx} 
+                                          href={src.url} 
+                                          target="_blank" 
+                                          rel="noreferrer"
+                                          className="flex items-center gap-1.5 bg-black/30 hover:bg-black/50 border border-white/5 rounded-full px-2.5 py-1 transition-colors"
+                                        >
+                                          <img 
+                                            src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} 
+                                            className="w-3 h-3 rounded-sm"
+                                            alt={domain} 
+                                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                          />
+                                          <span className="text-[10px] text-slate-300 truncate max-w-[120px]">{src.title}</span>
+                                        </a>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -672,6 +787,8 @@ export default function AIFab() {
                     </form>
                   </div>
                 </div>
+              )}
+                </>
               )}
             </div>
           </motion.div>
