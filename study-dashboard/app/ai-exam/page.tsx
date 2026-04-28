@@ -108,6 +108,8 @@ export default function AIExamPage() {
     try {
       await aiRef.current.init((text) => setProgressText(text));
       setIsReady(true);
+      const { updateUserStatus } = await import("../lib/presence");
+      await updateUserStatus(undefined, true);
     } catch (err) {
       console.error(err);
       setProgressText("Failed to load AI model. Please try again or use a supported browser.");
