@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
@@ -15,8 +15,11 @@ import {
   Filter,
   CheckCircle2,
   Lock,
+  UserCheck,
   type LucideIcon,
 } from "lucide-react";
+import { joinExam, updateUserStatus } from "./lib/presence";
+import OnlineUsers from "./components/OnlineUsers";
 
 // --- Types & Data ---
 type Subject = {
@@ -243,11 +246,61 @@ export default function StudyDashboard() {
   const [mounted, setMounted] = useState(false);
   const [upcomingExams, setUpcomingExams] = useState<Subject[]>([]);
 
+  // --- Presence state ---
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [nameInput, setNameInput] = useState("");
+  const [isJoining, setIsJoining] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
   const [nextExam, setNextExam] = useState<Subject | null>(null);
 
   useEffect(() => {
     setMounted(true);
+    // Show name modal on first visit
+    const saved = sessionStorage.getItem("examUserName");
+    if (saved) {
+      setUserName(saved);
+      // Auto-reconnect if name exists
+      joinExam(saved).catch(console.error);
+    } else {
+      // Slight delay so the page renders first
+      setTimeout(() => setShowNameModal(true), 600);
+    }
+
+    // Visibility tracking
+    const handleVisibilityChange = () => {
+      const status = document.visibilityState === "visible" ? "active" : "idle";
+      updateUserStatus(status).catch(console.error);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
+
+  useEffect(() => {
+    if (showNameModal) {
+      setTimeout(() => nameInputRef.current?.focus(), 100);
+    }
+  }, [showNameModal]);
+
+  const handleJoinExam = async () => {
+    const trimmed = nameInput.trim();
+    if (!trimmed) return;
+    setIsJoining(true);
+    try {
+      await joinExam(trimmed);
+      setUserName(trimmed);
+      sessionStorage.setItem("examUserName", trimmed);
+      setShowNameModal(false);
+    } catch (err) {
+      console.error("Failed to join exam presence:", err);
+    } finally {
+      setIsJoining(false);
+    }
+  };
 
   useEffect(() => {
     if (!mounted) return;
@@ -387,6 +440,8 @@ export default function StudyDashboard() {
           animate={{ opacity: 1, x: 0 }}
           className="w-full md:w-80 space-y-6 shrink-0"
         >
+          {/* Online Users Panel */}
+          <OnlineUsers />
           <div className="glass-panel rounded-3xl p-6 h-full border border-white/5">
             <div className="flex items-center gap-3 mb-8 pb-4 border-b border-white/5">
               <CalendarDays
@@ -692,6 +747,75 @@ export default function StudyDashboard() {
         )}
       </AnimatePresence>
       <AIFab />
+
+      {/* ── Name Entry Modal ── */}
+      <AnimatePresence>
+        {showNameModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+
+            <motion.div
+              initial={{ scale: 0.92, y: 24, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.92, y: 24, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 24 }}
+              className="relative z-10 glass-panel border border-white/10 rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center space-y-5"
+            >
+              {/* Icon */}
+              <div className="mx-auto w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                <UserCheck className="w-7 h-7 text-emerald-400" />
+              </div>
+
+              <div>
+                <h2 className="text-xl font-bold text-white mb-1">Join the Study Session</h2>
+                <p className="text-sm text-slate-400">
+                  Enter your name to appear in the live{" "}
+                  <span className="text-emerald-400 font-medium">Online Students</span> list.
+                </p>
+              </div>
+
+              {/* Input */}
+              <input
+                ref={nameInputRef}
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleJoinExam()}
+                placeholder="Your name…"
+                maxLength={40}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-sm"
+              />
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowNameModal(false)}
+                  className="flex-1 py-3 rounded-xl border border-white/10 text-slate-400 hover:bg-white/5 text-sm transition-colors"
+                >
+                  Skip
+                </button>
+                <button
+                  onClick={handleJoinExam}
+                  disabled={!nameInput.trim() || isJoining}
+                  className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all shadow-[0_0_16px_rgba(16,185,129,0.3)]"
+                >
+                  {isJoining ? "Joining…" : "Join"}
+                </button>
+              </div>
+
+              <p className="text-[10px] text-slate-600">
+                You&apos;ll be auto-removed when you close this tab.
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
