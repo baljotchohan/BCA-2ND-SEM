@@ -6,12 +6,13 @@ import { db } from "../lib/firebase";
  * Returns the key used for the user.
  */
 export async function joinExam(userName: string): Promise<string> {
-  let key = sessionStorage.getItem("presenceKey");
+  // Use localStorage instead of sessionStorage so returning users use the same ID (clean DB)
+  let key = typeof window !== 'undefined' ? localStorage.getItem("persistentUserId") : null;
 
-  // If no session key, generate a new unique ID
+  // If no persistent key, generate a new unique ID
   if (!key) {
     key = `user_${Math.random().toString(36).slice(2, 11)}`;
-    sessionStorage.setItem("presenceKey", key);
+    if (typeof window !== 'undefined') localStorage.setItem("persistentUserId", key);
   }
 
   const userRef = ref(db, `onlineUsers/${key}`);
@@ -67,15 +68,40 @@ export async function joinExam(userName: string): Promise<string> {
     // Calling this safely (cancel any previous onDisconnect on this ref first just in case)
     await onDisconnect(userRef).cancel();
     // Instead of remove(), we update the status so the DB keeps a record!
-    await onDisconnect(userRef).update({ status: "idle" });
+    await onDisconnect(userRef).update({ status: "idle", lastActive: Date.now() });
   } catch (e) {
     console.error("Firebase onDisconnect error (safe to ignore in dev):", e);
+  }
+
+  // Fetch existing data to keep history and increment visits
+  const { get } = await import("firebase/database");
+  const snapshot = await get(userRef);
+  
+  let totalVisits = 1;
+  let firstSeen = Date.now();
+  let history: any[] = [];
+  
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    totalVisits = (data.totalVisits || 0) + 1;
+    firstSeen = data.firstSeen || Date.now();
+    history = data.history || [];
+    
+    // Add login event
+    history.push({ action: "Logged In", timestamp: Date.now() });
+    if (history.length > 50) history = history.slice(history.length - 50);
+  } else {
+    history = [{ action: "First Visit", timestamp: Date.now() }];
   }
 
   // Initial presence record using set to ensure complete node creation
   await set(userRef, {
     name: userName.trim(),
-    joinedAt: Date.now(),
+    joinedAt: Date.now(), // This session start time
+    lastActive: Date.now(),
+    firstSeen,
+    totalVisits,
+    history,
     status: "active",
     examStarted: false,
     userAgent,
@@ -88,10 +114,38 @@ export async function joinExam(userName: string): Promise<string> {
 }
 
 /**
+ * Tracks when a user views a specific page or takes an action
+ */
+export async function trackActivity(actionName: string): Promise<void> {
+  const key = typeof window !== 'undefined' ? localStorage.getItem("persistentUserId") : null;
+  if (!key) return;
+
+  const { get } = await import("firebase/database");
+  const userRef = ref(db, `onlineUsers/${key}`);
+  
+  try {
+    const snapshot = await get(userRef);
+    if (!snapshot.exists()) return;
+    
+    let history = snapshot.val().history || [];
+    history.push({ action: actionName, timestamp: Date.now() });
+    if (history.length > 50) history = history.slice(history.length - 50);
+
+    await update(userRef, { 
+      history,
+      lastActive: Date.now(),
+      currentActivity: actionName
+    });
+  } catch (e) {
+    console.warn("Failed to track activity:", e);
+  }
+}
+
+/**
  * Updates the user's status (active/idle) or exam state.
  */
 export async function updateUserStatus(status?: "active" | "idle", examStarted?: boolean): Promise<void> {
-  const key = sessionStorage.getItem("presenceKey");
+  const key = typeof window !== 'undefined' ? localStorage.getItem("persistentUserId") : null;
   if (!key) return;
 
   const userRef = ref(db, `onlineUsers/${key}`);
@@ -117,12 +171,14 @@ export async function updateUserStatus(status?: "active" | "idle", examStarted?:
  * Manually removes a user from the onlineUsers node.
  */
 export async function leaveExam(): Promise<void> {
-  const key = sessionStorage.getItem("presenceKey");
+  const key = typeof window !== 'undefined' ? localStorage.getItem("persistentUserId") : null;
   if (!key) return;
 
   const { remove } = await import("firebase/database");
   const userRef = ref(db, `onlineUsers/${key}`);
   await remove(userRef);
-  sessionStorage.removeItem("presenceKey");
-  localStorage.removeItem("examUserName");
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem("persistentUserId");
+    localStorage.removeItem("examUserName");
+  }
 }

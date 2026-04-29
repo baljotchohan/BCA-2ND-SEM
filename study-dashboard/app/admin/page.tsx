@@ -181,8 +181,8 @@ export default function AdminDashboard() {
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Name</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Device & IP</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Joined At</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Exam</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status & Visits</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Activity History</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Duration</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400 text-right">Actions</th>
                 </tr>
@@ -222,20 +222,30 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${user.status === "active"
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                            : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                          }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${user.status === "active" ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
-                          {user.status}
-                        </span>
+                        <div className="flex flex-col gap-2">
+                          <span className={`w-max inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${user.status === "active"
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                            }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${user.status === "active" ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
+                            {user.status}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            {user.totalVisits} Total Visits
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
-                        {user.examStarted ? (
-                          <span className="text-[10px] font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/20 px-2 py-1 rounded-md uppercase">In Progress</span>
-                        ) : (
-                          <span className="text-[10px] text-slate-500 font-medium">Not Started</span>
-                        )}
+                        <div className="flex flex-col gap-1 max-w-[200px]" title={user.history?.map(h => `${new Date(h.timestamp).toLocaleTimeString()}: ${h.action}`).join('\n')}>
+                          <span className="text-[11px] font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/20 px-2 py-1 rounded-md uppercase w-max truncate">
+                            {user.currentActivity || (user.examStarted ? "Exam In Progress" : "Browsing")}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-medium truncate">
+                            {user.history && user.history.length > 1 
+                              ? `Prev: ${user.history[user.history.length - 2].action}` 
+                              : "No prior history"}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-400">
                         <div className="flex items-center gap-2">

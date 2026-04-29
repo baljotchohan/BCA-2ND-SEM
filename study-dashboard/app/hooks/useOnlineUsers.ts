@@ -12,6 +12,9 @@ export interface OnlineUser {
   platform?: string;
   deviceModel?: string;
   ip?: string;
+  totalVisits?: number;
+  history?: Array<{ action: string; timestamp: number }>;
+  currentActivity?: string;
 }
 
 /**
@@ -43,6 +46,9 @@ export function useOnlineUsers(includeIdle = false): OnlineUser[] {
           platform: (entry as any).platform || "Unknown",
           deviceModel: (entry as any).deviceModel || "Unknown",
           ip: (entry as any).ip || "Unknown",
+          totalVisits: (entry as any).totalVisits || 1,
+          history: (entry as any).history || [],
+          currentActivity: (entry as any).currentActivity || "Browsing Dashboard"
         }))
         .filter((user) => includeIdle || user.status === "active"); // Filter by active if not including idle
       setUsers(parsed);
