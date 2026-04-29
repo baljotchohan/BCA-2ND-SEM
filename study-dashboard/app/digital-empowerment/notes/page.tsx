@@ -196,7 +196,7 @@ export default function DigitalEmpowermentNotesPage() {
         {/* Document Header */}
         <div className="text-center mb-12 print:mb-8">
           <div className="bg-[#dcfce7] text-[#166534] text-xs font-black uppercase tracking-[0.2em] py-2 px-6 rounded-full inline-block mb-8 print:border print:border-emerald-300">
-            GEMINI ADVANCED • BILINGUAL EDITION
+            ANTIGRAVITY • BILINGUAL EDITION
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-[#0f172a] tracking-tight mb-4 leading-tight">
             DIGITAL EMPOWERMENT
