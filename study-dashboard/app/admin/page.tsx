@@ -38,6 +38,13 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const users = useOnlineUsers(true); // true to include idle/offline users
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  // Force re-render every 5 seconds to update "time ago" and "stale" status
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,9 +89,9 @@ export default function AdminDashboard() {
 
   const calculateDuration = (startTime: number, status?: string, lastSeen?: number) => {
     const STALE_THRESHOLD = 90000; // 90 seconds
-    const isStale = lastSeen && (Date.now() - lastSeen > STALE_THRESHOLD);
+    const isStale = lastSeen && (now - lastSeen > STALE_THRESHOLD);
     
-    const end = (status === "offline" || isStale) && lastSeen ? lastSeen : Date.now();
+    const end = (status === "offline" || isStale) && lastSeen ? lastSeen : now;
     if (end < startTime) return "0m";
 
     const minutes = Math.floor((end - startTime) / 60000);
@@ -129,7 +136,7 @@ export default function AdminDashboard() {
 
   const stats = useMemo(() => {
     const active = users.filter(u => {
-      const isStale = u.lastSeen && (Date.now() - u.lastSeen > 90000);
+      const isStale = u.lastSeen && (now - u.lastSeen > 90000);
       return u.status === "active" && !isStale;
     }).length;
 
@@ -309,7 +316,7 @@ export default function AdminDashboard() {
                 <AnimatePresence mode="popLayout">
                   {filteredUsers.map((user) => {
                     const STALE_THRESHOLD = 90000;
-                    const isStale = user.lastSeen && (Date.now() - user.lastSeen > STALE_THRESHOLD);
+                    const isStale = user.lastSeen && (now - user.lastSeen > STALE_THRESHOLD);
                     const effectiveStatus = isStale ? "offline" : user.status;
                     const browser = getBrowserInfo(user);
 

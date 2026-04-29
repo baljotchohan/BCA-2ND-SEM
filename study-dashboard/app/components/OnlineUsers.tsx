@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Wifi, Timer } from "lucide-react";
 import { useOnlineUsers } from "../hooks/useOnlineUsers";
@@ -9,8 +10,22 @@ import { useOnlineUsers } from "../hooks/useOnlineUsers";
  * Uses the useOnlineUsers hook which subscribes to Firebase Realtime Database.
  */
 export default function OnlineUsers() {
+  const [now, setNow] = useState(Date.now());
   const users = useOnlineUsers();
-  const count = users.length;
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Filter out users that are stale based on the current 'now' ticker
+  const activeUsers = users.filter(user => {
+    const STALE_THRESHOLD = 90000;
+    const isStale = user.lastSeen && (now - user.lastSeen > STALE_THRESHOLD);
+    return !isStale;
+  });
+
+  const count = activeUsers.length;
 
   const formatDuration = (ms: number) => {
     if (!ms) return "0m";
@@ -56,7 +71,7 @@ export default function OnlineUsers() {
         ) : (
           <ul className="space-y-2">
             <AnimatePresence initial={false} mode="popLayout">
-              {users.slice(0, 8).map((user, i) => (
+              {activeUsers.slice(0, 8).map((user, i) => (
                 <motion.li
                   key={`${user.name}-${user.joinedAt}`}
                   layout
