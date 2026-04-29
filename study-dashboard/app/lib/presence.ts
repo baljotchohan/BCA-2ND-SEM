@@ -27,13 +27,15 @@ export async function joinExam(userName: string): Promise<string> {
   const userRef = ref(db, `onlineUsers/${key}`);
 
   let ip = "Unknown";
-  try {
-    const res = await fetch("https://api.ipify.org?format=json");
-    const data = await res.json();
-    if (data.ip) ip = data.ip;
-  } catch (e) {
-    console.warn("Failed to fetch IP", e);
-  }
+  // Non-blocking IP fetch
+  fetch("https://api.ipify.org?format=json")
+    .then(res => res.json())
+    .then(data => { 
+      if (data.ip) {
+        update(userRef, { ip: data.ip }); 
+      }
+    })
+    .catch(e => console.warn("Failed to fetch IP", e));
 
   const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : "Unknown";
   const platform = typeof navigator !== 'undefined' ? (navigator as any).platform || "Unknown" : "Unknown";

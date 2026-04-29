@@ -23,7 +23,8 @@ import {
   LogOut,
   Zap,
   User,
-  ExternalLink
+  ExternalLink,
+  MessageSquare
 } from "lucide-react";
 import React, { Fragment } from "react";
 import Link from "next/link";
@@ -71,6 +72,12 @@ export default function AdminDashboard() {
     if (confirm("DANGER: This will permanently delete ALL student data. This cannot be undone. Proceed?")) {
       await remove(ref(db, "onlineUsers"));
       setSelectedUserId(null);
+    }
+  };
+
+  const clearGlobalChat = async () => {
+    if (confirm("Are you sure you want to clear ALL global chat messages?")) {
+      await remove(ref(db, "globalChat/messages"));
     }
   };
 
@@ -237,6 +244,12 @@ export default function AdminDashboard() {
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-500/70 hover:bg-red-500/10 hover:text-red-400 transition-all mt-4 border border-dashed border-red-500/20"
           >
             <Trash2 className="w-5 h-5" /> Clear All Data
+          </button>
+          <button 
+            onClick={clearGlobalChat}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-orange-500/70 hover:bg-orange-500/10 hover:text-orange-400 transition-all border border-dashed border-orange-500/20"
+          >
+            <MessageSquare className="w-5 h-5" /> Clear Global Chat
           </button>
         </nav>
 
