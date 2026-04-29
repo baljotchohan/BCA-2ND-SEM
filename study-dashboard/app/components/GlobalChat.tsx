@@ -238,15 +238,15 @@ export default function GlobalChat() {
             {/* Header */}
             <div className="bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 px-4 py-3 flex justify-between items-center text-white relative overflow-hidden shrink-0">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_-20%,rgba(255,255,255,0.2),transparent)] pointer-events-none" />
-              <div className="flex items-center gap-2.5 relative z-10">
-                <div className="bg-white/10 p-2 rounded-xl border border-white/10 backdrop-blur-md">
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="bg-white/10 p-2 rounded-xl border border-white/10 backdrop-blur-md flex items-center justify-center">
                   <Sparkles className="w-4 h-4 text-indigo-100" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-sm tracking-tight">Public Terminal</h3>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                    <p className="text-[9px] text-indigo-100/80 font-bold uppercase tracking-widest">
+                <div className="flex flex-col justify-center">
+                  <h3 className="font-bold text-sm tracking-tight leading-tight">Public Terminal</h3>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.5)]"></span>
+                    <p className="text-[9px] text-indigo-100/80 font-black uppercase tracking-widest leading-none">
                       Live Pulse
                     </p>
                   </div>
@@ -254,7 +254,7 @@ export default function GlobalChat() {
               </div>
               <button 
                 onClick={() => setIsOpen(false)}
-                className="p-2 hover:bg-white/10 rounded-xl transition-all border border-white/5 active:scale-90 relative z-10"
+                className="p-2 hover:bg-white/10 rounded-xl transition-all border border-white/5 active:scale-90 relative z-10 flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>

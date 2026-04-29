@@ -75,12 +75,12 @@ export default function StudyLeaderboard() {
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="relative shrink-0">
                     {index === 0 ? (
-                      <div className="absolute -top-2 -left-2 rotate-[-20deg]">
-                        <Medal className="w-4 h-4 text-amber-400 fill-amber-400/20" />
+                      <div className="absolute -top-2.5 -left-2.5 rotate-[-15deg] z-20">
+                        <Medal className="w-5 h-5 text-amber-400 fill-amber-400/20 drop-shadow-[0_2px_4px_rgba(251,191,36,0.3)]" />
                       </div>
                     ) : (
-                      <span className="absolute -left-0.5 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-600">
-                        #{index + 1}
+                      <span className="absolute -left-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500/50 w-4 text-right">
+                        {index + 1}
                       </span>
                     )}
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-xs border ${

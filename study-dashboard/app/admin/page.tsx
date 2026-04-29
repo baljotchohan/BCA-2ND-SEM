@@ -274,9 +274,9 @@ export default function AdminDashboard() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[radial-gradient(ellipse_at_top_right,rgba(16,185,129,0.03),transparent_50%)]">
+      <main className="flex-1 flex flex-col md:h-screen md:overflow-hidden bg-[radial-gradient(ellipse_at_top_right,rgba(16,185,129,0.03),transparent_50%)]">
         {/* Header Bar */}
-        <header className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-black/20 backdrop-blur-md shrink-0">
+        <header className="h-20 border-b border-white/5 flex items-center justify-between px-4 md:px-8 bg-black/20 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-6 flex-1 max-w-2xl">
             <div className="relative flex-1 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
@@ -303,7 +303,7 @@ export default function AdminDashboard() {
         </header>
 
         {/* Dashboard Content */}
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
           <div className="max-w-6xl mx-auto space-y-8">
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -469,7 +469,7 @@ export default function AdminDashboard() {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-y-0 right-0 w-full md:w-[450px] bg-[#09090b] border-l border-white/10 shadow-2xl z-50 flex flex-col p-8 gap-8"
+            className="fixed inset-y-0 right-0 w-full md:w-[450px] bg-[#09090b] border-l border-white/10 shadow-2xl z-50 flex flex-col p-4 md:p-8 gap-4 md:gap-8"
           >
             <div className="flex items-center justify-between">
               <button 

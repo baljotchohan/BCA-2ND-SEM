@@ -437,15 +437,17 @@ export default function StudyDashboard() {
 
             {/* Countdown Clock */}
             {nextExam && (
-              <div className="bg-black/50 border border-white/5 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 items-center backdrop-blur-md w-full xl:w-auto">
-                <div className="text-xs text-slate-400 font-medium tracking-wide sm:border-r border-white/10 sm:pr-4 uppercase">
-                  Next Exam:
+              <div className="bg-black/50 border border-white/5 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 items-center backdrop-blur-md w-full xl:w-auto shadow-2xl">
+                <div className="text-[10px] text-slate-500 font-bold tracking-widest sm:border-r border-white/10 sm:pr-4 uppercase leading-relaxed text-center sm:text-left">
+                  Next Objective:
                   <br />
-                  <span className="text-white normal-case text-sm">
+                  <span className="text-white normal-case text-xs font-bold block mt-0.5 truncate max-w-[120px]">
                     {nextExam.name}
                   </span>
                 </div>
-                <CountdownDisplay nextExam={nextExam} accentColor={accentColor} />
+                <div className="flex justify-center items-center">
+                  <CountdownDisplay nextExam={nextExam} accentColor={accentColor} />
+                </div>
               </div>
             )}
           </motion.div>
@@ -466,43 +468,51 @@ export default function StudyDashboard() {
                   transition={{ delay: 0.1 * idx }}
                   whileHover={!subject.locked ? { y: -4, scale: 1.02 } : {}}
                   onClick={() => !subject.locked && setActiveSubject(subject)}
-                  className={`glass-panel rounded-2xl p-5 relative overflow-hidden group border border-white/5 transition-all duration-300 ${
+                  className={`glass-panel rounded-2xl p-5 relative overflow-hidden group border border-white/5 transition-all duration-300 flex flex-col h-full min-h-[160px] ${
                     subject.locked
                       ? "opacity-60 cursor-not-allowed"
-                      : "cursor-pointer hover:border-white/20"
+                      : "cursor-pointer hover:border-white/20 hover:bg-white/[0.03]"
                   }`}
                 >
-                  {/* Subtle gradient background based on subject */}
+                  {/* Subtle gradient background */}
                   {!subject.locked && (
                     <div
-                      className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${subject.color} blur-2xl opacity-40 group-hover:opacity-70 transition-opacity`}
+                      className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${subject.color} blur-2xl opacity-30 group-hover:opacity-50 transition-opacity`}
                     />
                   )}
-
-                  <div className="relative z-10">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="p-2 rounded-xl bg-white/5 border border-white/10">
-                        <subject.icon className="w-5 h-5 text-slate-300" />
+                  
+                  <div className="relative z-10 flex flex-col h-full justify-between">
+                    <div>
+                      <div className="flex justify-between items-center mb-4">
+                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                          <subject.icon className="w-4 h-4 text-slate-300" />
+                        </div>
+                        <span className="text-[9px] font-black tracking-widest px-2 py-1 bg-white/5 border border-white/5 rounded-md text-slate-500 uppercase">
+                          {subject.code}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-mono tracking-wider px-2 py-1 bg-white/5 rounded-full text-slate-400">
-                        {subject.code}
-                      </span>
+
+                      <h3 className="font-bold text-sm text-slate-200 mb-2 leading-snug line-clamp-2 min-h-[2.5rem] flex items-center">
+                        {subject.name}
+                      </h3>
                     </div>
 
-                    <h3 className="font-medium text-sm text-slate-200 mb-6 leading-tight h-10 line-clamp-2">
-                      {subject.name}
-                    </h3>
-
-                    {/* Status / Progress */}
-                    {subject.locked ? (
-                      <div className="flex items-center gap-2 text-xs text-slate-500 bg-black/30 w-max px-2 py-1 rounded-md border border-white/5">
-                        <Lock className="w-3 h-3" /> Locked
-                      </div>
-                    ) : subject.progress === 100 ? (
-                      <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-400/10 w-max px-2.5 py-1.5 rounded-md border border-emerald-400/20 shadow-sm shadow-emerald-900/20">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Completed
-                      </div>
-                    ) : null}
+                    <div className="mt-auto">
+                      {subject.locked ? (
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 bg-black/40 w-max px-2 py-1 rounded-md border border-white/5 uppercase tracking-wider">
+                          <Lock className="w-3 h-3" /> Locked
+                        </div>
+                      ) : subject.progress === 100 ? (
+                        <div className="flex items-center gap-2 text-[10px] font-black text-emerald-400 bg-emerald-400/10 w-max px-2.5 py-1.5 rounded-md border border-emerald-400/20 shadow-sm shadow-emerald-900/10 uppercase tracking-widest">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Completed
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-cyan-400/60 uppercase tracking-widest">
+                          <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/40" />
+                          Ready to Study
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               ))}
