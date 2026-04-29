@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Wifi, Timer } from "lucide-react";
+import { Wifi, Timer } from "lucide-react";
 import { useOnlineUsers } from "../hooks/useOnlineUsers";
 
 /**
@@ -10,21 +9,8 @@ import { useOnlineUsers } from "../hooks/useOnlineUsers";
  * Uses the useOnlineUsers hook which subscribes to Firebase Realtime Database.
  */
 export default function OnlineUsers() {
-  const [now, setNow] = useState(Date.now());
-  const users = useOnlineUsers();
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Filter out users that are stale based on the current 'now' ticker
-  const activeUsers = users.filter(user => {
-    const STALE_THRESHOLD = 90000;
-    const isStale = user.lastSeen && (now - user.lastSeen > STALE_THRESHOLD);
-    return !isStale;
-  });
-
+  // Hook already filters for active, non-stale users with periodic re-evaluation
+  const activeUsers = useOnlineUsers(false);
   const count = activeUsers.length;
 
   const formatDuration = (ms: number) => {
@@ -73,7 +59,7 @@ export default function OnlineUsers() {
             <AnimatePresence initial={false} mode="popLayout">
               {activeUsers.slice(0, 8).map((user, i) => (
                 <motion.li
-                  key={`${user.name}-${user.joinedAt}`}
+                  key={user.id}
                   layout
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -81,14 +67,14 @@ export default function OnlineUsers() {
                   transition={{ delay: i * 0.05 }}
                   className="flex items-center justify-between gap-3 text-xs text-slate-300 bg-white/[0.02] hover:bg-white/[0.05] rounded-[1.25rem] px-4 py-3 border border-white/5 transition-all group/item"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <span className="w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-black flex items-center justify-center shrink-0 uppercase shadow-inner">
                       {user.name.charAt(0)}
                     </span>
-                    <span className="font-bold truncate max-w-[100px]">{user.name}</span>
+                    <span className="font-bold truncate">{user.name}</span>
                   </div>
                   {user.totalStudyTime && user.totalStudyTime > 60000 && (
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 group-hover/item:text-cyan-400 transition-colors">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 group-hover/item:text-cyan-400 transition-colors shrink-0">
                       <Timer className="w-3 h-3" />
                       {formatDuration(user.totalStudyTime)}
                     </div>
