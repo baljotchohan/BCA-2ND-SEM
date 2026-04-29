@@ -64,11 +64,10 @@ export async function joinExam(userName: string): Promise<string> {
   }
 
   try {
-    // Schedule auto-removal on disconnect
-    // Calling this safely (cancel any previous onDisconnect on this ref first just in case)
+    // Schedule auto-status change on disconnect
     await onDisconnect(userRef).cancel();
-    // Instead of remove(), we update the status so the DB keeps a record!
-    await onDisconnect(userRef).update({ status: "idle", lastActive: Date.now() });
+    // Use 'offline' instead of 'idle' for actual tab closure
+    await onDisconnect(userRef).update({ status: "offline", lastActive: Date.now() });
   } catch (e) {
     console.error("Firebase onDisconnect error (safe to ignore in dev):", e);
   }

@@ -6,7 +6,7 @@ export interface OnlineUser {
   id: string;
   name: string;
   joinedAt: number;
-  status: "active" | "idle";
+  status: "active" | "idle" | "offline";
   examStarted: boolean;
   userAgent?: string;
   platform?: string;

@@ -39,33 +39,8 @@ export default function AdminDashboard() {
     }
   };
 
-  // Auto-cleanup logic
-  useEffect(() => {
-    if (!isAuthenticated || users.length === 0) return;
+  // Persistent dashboard - users stay in list until manually removed
 
-    const cleanup = async () => {
-      const now = Date.now();
-      const IDLE_LIMIT = 30 * 60 * 1000; // 30 minutes
-      const TOTAL_LIMIT = 3 * 60 * 60 * 1000; // 3 hours
-
-      for (const user of users) {
-        const duration = now - user.joinedAt;
-
-        // This is a bit simplified; real idle time tracking would need a 'lastActive' timestamp.
-        // For now, if status is 'idle' and they were joined long ago, or just total time limit.
-        if (user.status === "idle" && duration > IDLE_LIMIT) {
-          console.log(`Cleaning up idle user: ${user.name}`);
-          await remove(ref(db, `onlineUsers/${user.id}`));
-        } else if (duration > TOTAL_LIMIT) {
-          console.log(`Cleaning up stale user: ${user.name}`);
-          await remove(ref(db, `onlineUsers/${user.id}`));
-        }
-      }
-    };
-
-    const interval = setInterval(cleanup, 60000); // Check every minute
-    return () => clearInterval(interval);
-  }, [isAuthenticated, users]);
 
   const removeUser = async (id: string) => {
     if (confirm("Are you sure you want to remove this user?")) {
@@ -187,7 +162,7 @@ export default function AdminDashboard() {
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Device & IP</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Joined At</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status & Visits</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Current Activity</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Live Activity</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Duration</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400 text-right">Actions</th>
                 </tr>
@@ -228,11 +203,20 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-col gap-2">
-                            <span className={`w-max inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${user.status === "active"
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                            <span className={`w-max inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${
+                                user.status === "active"
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                  : user.status === "idle"
+                                  ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                                  : "bg-slate-500/10 text-slate-400 border-white/10"
                               }`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${user.status === "active" ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
+                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                user.status === "active" 
+                                  ? "bg-emerald-400 animate-pulse" 
+                                  : user.status === "idle"
+                                  ? "bg-amber-400"
+                                  : "bg-slate-500"
+                              }`} />
                               {user.status}
                             </span>
                             <span className="text-[10px] text-slate-400 font-medium">
