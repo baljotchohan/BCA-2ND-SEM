@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
@@ -12,9 +12,18 @@ import {
   ArrowLeft,
   AlertCircle,
   MonitorSmartphone,
-  ChevronDown,
-  ChevronUp,
-  History
+  ChevronRight,
+  History,
+  LayoutDashboard,
+  Search,
+  Timer,
+  Smartphone,
+  Globe,
+  MoreVertical,
+  LogOut,
+  Zap,
+  User,
+  ExternalLink
 } from "lucide-react";
 import React, { Fragment } from "react";
 import Link from "next/link";
@@ -26,8 +35,9 @@ export default function AdminDashboard() {
   const [password, setPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState("");
-  const users = useOnlineUsers(true); // true to include idle users
-  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const users = useOnlineUsers(true); // true to include idle/offline users
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,12 +49,10 @@ export default function AdminDashboard() {
     }
   };
 
-  // Persistent dashboard - users stay in list until manually removed
-
-
   const removeUser = async (id: string) => {
-    if (confirm("Are you sure you want to remove this user?")) {
+    if (confirm("Are you sure you want to permanently remove this user data?")) {
       await remove(ref(db, `onlineUsers/${id}`));
+      if (selectedUserId === id) setSelectedUserId(null);
     }
   };
 
@@ -52,9 +60,34 @@ export default function AdminDashboard() {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const calculateDuration = (joinedAt: number, status?: string, lastSeen?: number) => {
-    const end = (status === "offline" && lastSeen) ? lastSeen : Date.now();
-    const minutes = Math.floor((end - joinedAt) / 60000);
+  const formatFullDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleString([], { 
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
+  const formatDuration = (ms: number) => {
+    if (!ms) return "0m";
+    const minutes = Math.floor(ms / 60000);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours < 24) return `${hours}h ${mins}m`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ${hours % 24}h`;
+  };
+
+  const calculateDuration = (startTime: number, status?: string, lastSeen?: number) => {
+    const STALE_THRESHOLD = 90000; // 90 seconds
+    const isStale = lastSeen && (Date.now() - lastSeen > STALE_THRESHOLD);
+    
+    const end = (status === "offline" || isStale) && lastSeen ? lastSeen : Date.now();
+    if (end < startTime) return "0m";
+
+    const minutes = Math.floor((end - startTime) / 60000);
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
     return `${hours}h ${minutes % 60}m`;
@@ -64,260 +97,437 @@ export default function AdminDashboard() {
     const ua = user.userAgent;
     if (!ua || ua === "Unknown") return user.deviceModel !== "Unknown" ? user.deviceModel : "Unknown Device";
     
-    let browser = "Unknown Browser";
+    let browser = "Unknown";
     if (ua.includes("Firefox")) browser = "Firefox";
-    else if (ua.includes("SamsungBrowser")) browser = "Samsung Internet";
+    else if (ua.includes("SamsungBrowser")) browser = "Samsung";
     else if (ua.includes("Opera") || ua.includes("OPR")) browser = "Opera";
-    else if (ua.includes("Trident")) browser = "IE";
     else if (ua.includes("Edge") || ua.includes("Edg")) browser = "Edge";
     else if (ua.includes("Chrome")) browser = "Chrome";
     else if (ua.includes("Safari")) browser = "Safari";
 
-    let os = "Unknown OS";
+    let os = "Unknown";
     if (ua.includes("Win")) os = "Windows";
     else if (ua.includes("like Mac")) os = "iOS";
     else if (ua.includes("Mac")) os = "MacOS";
     else if (ua.includes("Android")) os = "Android";
     else if (ua.includes("Linux")) os = "Linux";
 
-    const baseInfo = `${os} • ${browser}`;
-    
-    // If we successfully extracted a specific device model, show it alongside!
-    if (user.deviceModel && user.deviceModel !== "Unknown") {
-      return `${user.deviceModel} (${browser})`;
-    }
-
-    return baseInfo;
+    return { os, browser, model: user.deviceModel };
   };
+
+  const filteredUsers = useMemo(() => {
+    return users.filter(u => 
+      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (u.ip || "").includes(searchQuery)
+    ).sort((a, b) => {
+      // Sort by active first, then by last seen
+      if (a.status === "active" && b.status !== "active") return -1;
+      if (a.status !== "active" && b.status === "active") return 1;
+      return (b.lastSeen || 0) - (a.lastSeen || 0);
+    });
+  }, [users, searchQuery]);
+
+  const stats = useMemo(() => {
+    const active = users.filter(u => {
+      const isStale = u.lastSeen && (Date.now() - u.lastSeen > 90000);
+      return u.status === "active" && !isStale;
+    }).length;
+
+    const totalTime = users.reduce((acc, u) => acc + (u.totalStudyTime || 0), 0);
+    const totalVisits = users.reduce((acc, u) => acc + (u.totalVisits || 0), 0);
+
+    return { active, totalTime, totalVisits, totalUsers: users.length };
+  }, [users]);
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4 selection:bg-emerald-500/30">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.05),transparent_50%)]" />
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="glass-panel border border-white/10 rounded-3xl p-8 w-full max-w-sm text-center space-y-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-panel border border-white/10 rounded-[2.5rem] p-10 w-full max-w-md text-center space-y-8 relative z-10 backdrop-blur-2xl shadow-2xl"
         >
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-            <Lock className="w-8 h-8 text-emerald-400" />
+          <div className="mx-auto w-20 h-20 rounded-3xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-white/10 flex items-center justify-center shadow-inner">
+            <ShieldCheck className="w-10 h-10 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Admin Access</h1>
-            <p className="text-sm text-slate-400">Enter password to manage users</p>
+            <h1 className="text-3xl font-bold text-white tracking-tight">Access Control</h1>
+            <p className="text-slate-400 mt-2 text-sm">Security credentials required for terminal access</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-all"
-              autoFocus
-            />
-            {error && <p className="text-xs text-red-400 flex items-center justify-center gap-1"><AlertCircle className="w-3 h-3" /> {error}</p>}
-            <button className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-all shadow-lg shadow-emerald-900/20">
-              Login
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter Secure Key"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-slate-600"
+                autoFocus
+              />
+            </div>
+            {error && (
+              <motion.p 
+                initial={{ opacity: 0, x: -10 }} 
+                animate={{ opacity: 1, x: 0 }}
+                className="text-xs text-red-400 flex items-center justify-center gap-2"
+              >
+                <AlertCircle className="w-3.5 h-3.5" /> {error}
+              </motion.p>
+            )}
+            <button className="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all shadow-[0_8px_30px_rgb(5,150,105,0.2)] active:scale-[0.98]">
+              Authenticate Session
             </button>
           </form>
-          <Link href="/" className="inline-flex items-center gap-2 text-xs text-slate-500 hover:text-white transition-colors">
-            <ArrowLeft className="w-3 h-3" /> Back to Dashboard
+          <Link href="/" className="inline-flex items-center gap-2 text-xs text-slate-500 hover:text-white transition-colors group">
+            <ArrowLeft className="w-3 h-3 transition-transform group-hover:-translate-x-1" /> Return to Terminal
           </Link>
         </motion.div>
       </div>
     );
   }
 
+  const selectedUser = users.find(u => u.id === selectedUserId);
+
   return (
-    <div className="min-h-screen bg-[#050505] text-[#f8fafc] p-4 md:p-8">
-      <div className="max-w-6xl mx-auto space-y-8">
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="p-2 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-3">
-                <ShieldCheck className="text-emerald-400" /> Admin Dashboard
-              </h1>
-              <p className="text-slate-400 text-sm">Real-time presence management</p>
+    <div className="min-h-screen bg-[#050505] text-[#f8fafc] flex flex-col md:flex-row selection:bg-cyan-500/30">
+      {/* Sidebar Navigation */}
+      <aside className="w-full md:w-72 border-r border-white/5 bg-[#070707] p-6 flex flex-col gap-8 shrink-0">
+        <div className="flex items-center gap-3 px-2">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <Zap className="w-6 h-6 text-white fill-current" />
+          </div>
+          <div>
+            <h2 className="font-bold text-xl tracking-tight">ANTIGRAVITY</h2>
+            <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-[0.2em]">Command Center</p>
+          </div>
+        </div>
+
+        <nav className="flex flex-col gap-2">
+          <button className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-medium shadow-sm transition-all">
+            <LayoutDashboard className="w-5 h-5 text-emerald-400" /> Dashboard
+          </button>
+          <button className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all">
+            <Users className="w-5 h-5" /> All Students
+          </button>
+          <button className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all">
+            <History className="w-5 h-5" /> System Logs
+          </button>
+        </nav>
+
+        <div className="mt-auto space-y-4">
+          <div className="glass-panel border border-white/5 rounded-2xl p-4 bg-emerald-500/5">
+            <p className="text-[10px] text-emerald-500/70 font-bold uppercase tracking-widest mb-2">System Status</p>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-slate-300">Live Engine</span>
+              <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 uppercase">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Online
+              </span>
+            </div>
+          </div>
+          <button 
+            onClick={() => setIsAuthenticated(false)}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-white/5 text-slate-400 hover:text-red-400 hover:bg-red-400/5 transition-all text-sm font-medium"
+          >
+            <LogOut className="w-4 h-4" /> Terminate Access
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[radial-gradient(ellipse_at_top_right,rgba(16,185,129,0.03),transparent_50%)]">
+        {/* Header Bar */}
+        <header className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-black/20 backdrop-blur-md shrink-0">
+          <div className="flex items-center gap-6 flex-1 max-w-2xl">
+            <div className="relative flex-1 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
+              <input 
+                type="text" 
+                placeholder="Search by student name or IP..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-2.5 text-sm focus:outline-none focus:border-white/20 transition-all placeholder:text-slate-600"
+              />
             </div>
           </div>
 
-          <div className="flex gap-4">
-            <div className="glass-panel border border-white/5 rounded-2xl px-6 py-3 flex items-center gap-3">
-              <Users className="text-emerald-400 w-5 h-5" />
-              <div>
-                <div className="text-2xl font-bold">{users.filter(u => u.status === "active").length}</div>
-                <div className="text-[10px] text-emerald-500 uppercase tracking-wider font-bold">Online Now</div>
-              </div>
-            </div>
-
-            <div className="glass-panel border border-white/5 rounded-2xl px-6 py-3 flex items-center gap-3">
-              <Activity className="text-slate-400 w-5 h-5" />
-              <div>
-                <div className="text-2xl font-bold">{users.length}</div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Total Tracked</div>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="px-4 py-2 rounded-xl border border-white/10 text-xs font-bold hover:bg-white/5 transition-all">
+              LIVE SITE
+            </Link>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center p-[1px]">
+              <div className="w-full h-full rounded-full bg-[#050505] flex items-center justify-center overflow-hidden">
+                <User className="w-5 h-5 text-emerald-400" />
               </div>
             </div>
           </div>
         </header>
 
-        <div className="glass-panel border border-white/5 rounded-3xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-white/5 border-b border-white/10">
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Name</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Device & IP</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Last Seen</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status & Visits</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Live Activity</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Session / Total</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                <AnimatePresence>
-                  {users.map((user) => (
-                    <Fragment key={user.id}>
-                      <motion.tr
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="hover:bg-white/[0.02] transition-colors"
+        {/* Dashboard Content */}
+        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+          <div className="max-w-6xl mx-auto space-y-8">
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: "Active Now", value: stats.active, icon: Activity, color: "text-emerald-400", bg: "bg-emerald-400/10" },
+                { label: "Total Students", value: stats.totalUsers, icon: Users, color: "text-blue-400", bg: "bg-blue-400/10" },
+                { label: "Total Study Time", value: formatDuration(stats.totalTime), icon: Timer, color: "text-amber-400", bg: "bg-amber-400/10" },
+                { label: "Site Visits", value: stats.totalVisits, icon: Zap, color: "text-cyan-400", bg: "bg-cyan-400/10" }
+              ].map((stat, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="glass-panel border border-white/5 p-6 rounded-[2rem] flex items-center gap-5 hover:border-white/10 transition-all group"
+                >
+                  <div className={`w-14 h-14 rounded-2xl ${stat.bg} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
+                    <stat.icon className={`w-7 h-7 ${stat.color}`} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">{stat.label}</p>
+                    <p className="text-2xl font-bold text-white tracking-tight">{stat.value}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Students List */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-emerald-400" /> Live Traffic
+                  <span className="text-[10px] bg-white/5 text-slate-400 px-2 py-1 rounded-md ml-2">{filteredUsers.length} Recorded</span>
+                </h3>
+                <div className="flex gap-2">
+                  <div className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-[10px] font-bold text-slate-400">STATUS: ALL</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <AnimatePresence mode="popLayout">
+                  {filteredUsers.map((user) => {
+                    const STALE_THRESHOLD = 90000;
+                    const isStale = user.lastSeen && (Date.now() - user.lastSeen > STALE_THRESHOLD);
+                    const effectiveStatus = isStale ? "offline" : user.status;
+                    const browser = getBrowserInfo(user);
+
+                    return (
+                      <motion.div
+                        layout
+                        key={user.id}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        whileHover={{ y: -4 }}
+                        onClick={() => setSelectedUserId(user.id)}
+                        className={`glass-panel border group cursor-pointer relative overflow-hidden transition-all rounded-[2rem] p-6 ${
+                          selectedUserId === user.id ? 'border-emerald-500/50 ring-1 ring-emerald-500/20' : 'border-white/5 hover:border-white/10'
+                        }`}
                       >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold uppercase text-xs">
+                        {/* Status Indicator Bar */}
+                        <div className={`absolute top-0 left-0 w-full h-1 ${
+                          effectiveStatus === "active" ? "bg-emerald-500" : effectiveStatus === "idle" ? "bg-amber-500" : "bg-slate-700"
+                        }`} />
+
+                        <div className="flex justify-between items-start mb-6">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg uppercase shadow-inner ${
+                              effectiveStatus === "active" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-slate-800 text-slate-500 border border-white/5"
+                            }`}>
                               {user.name.charAt(0)}
                             </div>
-                            <span className="font-medium">{user.name}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col gap-1">
-                            <span className="text-[11px] font-medium text-slate-300 flex items-center gap-1.5">
-                              <MonitorSmartphone className="w-3 h-3 text-slate-400" />
-                              {getBrowserInfo(user)}
-                            </span>
-                            <span className="text-[10px] text-slate-500 font-mono tracking-wider">
-                              {user.ip !== "Unknown" ? user.ip : (user.platform || 'Unknown')}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-400">
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2 text-white font-medium">
-                              <Clock className="w-3.5 h-3.5 text-emerald-400" /> {formatTime((user as any).lastSeen || user.joinedAt)}
-                            </div>
-                            <div className="text-[10px] text-slate-500 uppercase ml-5">
-                              Joined {new Date(user.joinedAt).toLocaleDateString()}
+                            <div>
+                              <h4 className="font-bold text-white text-lg leading-tight truncate max-w-[150px]">{user.name}</h4>
+                              <div className="flex flex-col gap-0.5 mt-1">
+                                <p className="text-[9px] text-emerald-500/60 font-mono tracking-tighter uppercase font-bold">
+                                  UUID: {user.id.split('_').pop()}
+                                </p>
+                                <p className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                                  <Globe className="w-2.5 h-2.5" /> {user.ip || 'Hidden IP'}
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col gap-2">
-                            <span className={`w-max inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${
-                                user.status === "active"
-                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                  : user.status === "idle"
-                                  ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                                  : "bg-slate-500/10 text-slate-400 border-white/10"
-                              }`}>
+                          <div className="flex flex-col items-end gap-2">
+                            <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+                              effectiveStatus === "active" ? "bg-emerald-500/10 text-emerald-400" : effectiveStatus === "idle" ? "bg-amber-500/10 text-amber-400" : "bg-white/5 text-slate-500"
+                            }`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${
-                                user.status === "active" 
-                                  ? "bg-emerald-400 animate-pulse" 
-                                  : user.status === "idle"
-                                  ? "bg-amber-400"
-                                  : "bg-slate-500"
+                                effectiveStatus === "active" ? "bg-emerald-400 animate-pulse" : effectiveStatus === "idle" ? "bg-amber-400" : "bg-slate-600"
                               }`} />
-                              {user.status}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-medium">
-                              {user.totalVisits} Total Visits
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col gap-1 max-w-[200px]">
-                            <span className="text-[11px] font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/20 px-2 py-1 rounded-md uppercase w-max truncate">
-                              {user.currentActivity || (user.examStarted ? "Exam In Progress" : "Browsing")}
+                              {isStale ? "Away" : user.status}
+                            </div>
+                            <span className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">
+                              Joined {new Date(user.joinedAt).toLocaleDateString()}
                             </span>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-400">
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2 text-cyan-400">
-                              <Activity className="w-3.5 h-3.5" /> {calculateDuration((user as any).currentSessionStart || user.joinedAt, user.status, (user as any).lastSeen)}
+                        </div>
+
+                        <div className="space-y-4">
+                          {/* Current Activity */}
+                          <div className="bg-black/40 border border-white/5 rounded-2xl p-3">
+                            <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest mb-1.5">Last Seen Doing</p>
+                            <p className="text-xs text-cyan-400 font-medium line-clamp-1 flex items-center gap-2">
+                              <ExternalLink className="w-3 h-3" /> {user.currentActivity || "Browsing Hub"}
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3">
+                              <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest mb-1">Session</p>
+                              <p className="text-sm font-bold text-white flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                                {calculateDuration(user.currentSessionStart || user.joinedAt, user.status, user.lastSeen)}
+                              </p>
                             </div>
-                            <div className="text-[10px] text-slate-500 ml-5">
-                              Total: {calculateDuration(user.joinedAt, user.status, (user as any).lastSeen)}
+                            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3">
+                              <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest mb-1">Total Life</p>
+                              <p className="text-sm font-bold text-white flex items-center gap-1.5">
+                                <Timer className="w-3.5 h-3.5 text-cyan-400" />
+                                {formatDuration(user.totalStudyTime || 0)}
+                              </p>
                             </div>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button
-                            onClick={() => setExpandedUserId(expandedUserId === user.id ? null : user.id)}
-                            className="p-2 text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-all mr-2"
-                            title={expandedUserId === user.id ? "Hide History" : "View History"}
-                          >
-                            {expandedUserId === user.id ? <ChevronUp className="w-4 h-4" /> : <History className="w-4 h-4" />}
-                          </button>
-                          <button
-                            onClick={() => removeUser(user.id)}
-                            className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
-                            title="Remove User"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </motion.tr>
-                      {expandedUserId === user.id && (
-                        <motion.tr
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="bg-white/[0.01]"
-                        >
-                          <td colSpan={7} className="px-6 py-6 border-t border-white/5">
-                            <div className="flex flex-col gap-4">
-                              <h4 className="text-sm font-semibold text-white flex items-center gap-2">
-                                <History className="w-4 h-4 text-emerald-400" /> Activity History
-                              </h4>
-                              {user.history && user.history.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                  {user.history.map((h, i) => (
-                                    <div key={i} className="flex items-start gap-3 bg-white/5 rounded-xl p-3 border border-white/5">
-                                      <div className="mt-0.5 w-2 h-2 rounded-full bg-emerald-500/50" />
-                                      <div className="flex flex-col">
-                                        <span className="text-xs font-medium text-slate-200">{h.action}</span>
-                                        <span className="text-[10px] text-slate-500">{new Date(h.timestamp).toLocaleString()}</span>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="text-xs text-slate-500 italic">No history available for this user.</p>
-                              )}
-                            </div>
-                          </td>
-                        </motion.tr>
-                      )}
-                    </Fragment>
-                  ))}
+                        </div>
+
+                        {/* Device Info */}
+                        <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
+                            <MonitorSmartphone className="w-3 h-3" />
+                            {typeof browser === 'object' ? `${browser.model !== 'Unknown' ? browser.model : browser.os}` : browser}
+                          </div>
+                          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                            {user.totalVisits} VISITS
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </AnimatePresence>
-                {users.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500 italic">
-                      No online users currently tracking
-                    </td>
-                  </tr>
+                {filteredUsers.length === 0 && (
+                  <div className="col-span-full py-20 text-center space-y-4">
+                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto">
+                      <Search className="w-8 h-8 text-slate-600" />
+                    </div>
+                    <p className="text-slate-500 font-medium">No students found matching your search</p>
+                  </div>
                 )}
-              </tbody>
-            </table>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
+
+      {/* Right Drawer: User Detail & History */}
+      <AnimatePresence>
+        {selectedUserId && selectedUser && (
+          <motion.aside
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed inset-y-0 right-0 w-full md:w-[450px] bg-[#09090b] border-l border-white/10 shadow-2xl z-50 flex flex-col p-8 gap-8"
+          >
+            <div className="flex items-center justify-between">
+              <button 
+                onClick={() => setSelectedUserId(null)}
+                className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+              <h3 className="font-bold text-xl">Student Intelligence</h3>
+              <button 
+                onClick={() => removeUser(selectedUser.id)}
+                className="p-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-2xl transition-all"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Profile Header */}
+            <div className="flex flex-col items-center text-center gap-4 py-6 border-b border-white/5">
+              <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 flex items-center justify-center text-3xl font-bold text-emerald-400 uppercase shadow-2xl shadow-emerald-500/10">
+                {selectedUser.name.charAt(0)}
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">{selectedUser.name}</h2>
+                <p className="text-slate-500 font-mono text-xs flex items-center justify-center gap-2 mt-1">
+                  ID: {selectedUser.id.replace('user_', '')} • {selectedUser.ip || 'No IP'}
+                </p>
+              </div>
+            </div>
+
+            {/* Comprehensive History */}
+            <div className="flex-1 flex flex-col gap-6 overflow-hidden">
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-slate-300 flex items-center gap-2">
+                  <History className="w-4 h-4 text-emerald-400" /> Activity Timeline
+                </h4>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  {selectedUser.history?.length || 0} Events
+                </span>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                {selectedUser.history && selectedUser.history.length > 0 ? (
+                  selectedUser.history.map((h, i) => (
+                    <div key={i} className="relative pl-8 before:absolute before:left-[11px] before:top-8 before:bottom-[-20px] before:w-px before:bg-white/5 last:before:hidden">
+                      <div className="absolute left-0 top-1 w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      </div>
+                      <div className="glass-panel border border-white/5 p-4 rounded-2xl hover:border-white/10 transition-all">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="text-xs font-bold text-slate-200">{h.action}</span>
+                          <span className="text-[10px] text-slate-500 font-mono">{formatFullDate(h.timestamp)}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">System Record</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-slate-600 text-sm italic">No timeline data available</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer Stats */}
+            <div className="mt-auto pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
+              <div className="glass-panel border border-white/5 p-4 rounded-2xl bg-white/[0.02]">
+                <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest mb-1">First Seen</p>
+                <p className="text-xs font-bold text-white">{new Date(selectedUser.joinedAt).toLocaleDateString()}</p>
+              </div>
+              <div className="glass-panel border border-white/5 p-4 rounded-2xl bg-white/[0.02]">
+                <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest mb-1">Total Visits</p>
+                <p className="text-xs font-bold text-white">{selectedUser.totalVisits} Sessions</p>
+              </div>
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      <style jsx global>{`
+        .glass-panel {
+          background: rgba(255, 255, 255, 0.03);
+          backdrop-filter: blur(12px);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+      `}</style>
     </div>
   );
 }

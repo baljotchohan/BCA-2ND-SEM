@@ -6,13 +6,22 @@ import { db } from "../lib/firebase";
  * Returns the key used for the user.
  */
 export async function joinExam(userName: string): Promise<string> {
-  // Create a predictable key based on the user's name so multiple devices or 
-  // sessions with the same name update the same database record instead of creating duplicates.
   const safeName = userName.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-  const key = `user_${safeName}`;
-
+  
+  let key = "";
   if (typeof window !== 'undefined') {
+    const savedId = localStorage.getItem("persistentStudentId");
+    if (savedId && savedId.startsWith(`user_${safeName}`)) {
+      key = savedId;
+    } else {
+      // Generate a new unique ID for this student/device
+      const suffix = Math.random().toString(36).substring(2, 6);
+      key = `user_${safeName}_${suffix}`;
+      localStorage.setItem("persistentStudentId", key);
+    }
     localStorage.setItem("persistentUserId", key);
+  } else {
+    key = `user_${safeName}`;
   }
 
   const userRef = ref(db, `onlineUsers/${key}`);
@@ -76,16 +85,12 @@ export async function joinExam(userName: string): Promise<string> {
   const { get } = await import("firebase/database");
   const snapshot = await get(userRef);
   
-  let totalVisits = 1;
-  let firstSeen = Date.now();
-  let history: any[] = [];
+  const existingData = snapshot.exists() ? snapshot.val() : {};
+  let totalVisits = (existingData.totalVisits || 0) + 1;
+  let firstSeen = existingData.firstSeen || Date.now();
+  let history: any[] = existingData.history || [];
   
   if (snapshot.exists()) {
-    const data = snapshot.val();
-    totalVisits = (data.totalVisits || 0) + 1;
-    firstSeen = data.firstSeen || Date.now();
-    history = data.history || [];
-    
     // Add login event
     history.push({ action: "Logged In", timestamp: Date.now() });
     if (history.length > 50) history = history.slice(history.length - 50);
@@ -102,6 +107,7 @@ export async function joinExam(userName: string): Promise<string> {
     lastSeen: Date.now(),
     firstSeen,
     totalVisits,
+    totalStudyTime: existingData.totalStudyTime || 0,
     status: "active",
     examStarted: false,
     userAgent,
@@ -154,15 +160,37 @@ export async function trackActivity(actionName: string): Promise<void> {
 
 /**
  * Updates the 'lastSeen' timestamp periodically (Heartbeat)
+ * Also increments totalStudyTime based on elapsed time
  */
 export async function sendHeartbeat(): Promise<void> {
   const key = typeof window !== 'undefined' ? localStorage.getItem("persistentUserId") : null;
   if (!key) return;
 
   const userRef = ref(db, `onlineUsers/${key}`);
+  const { get, increment } = await import("firebase/database");
+  
   try {
-    await update(userRef, { lastSeen: Date.now() });
-  } catch (e) {}
+    const snapshot = await get(userRef);
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const now = Date.now();
+      const lastSeen = data.lastSeen || now;
+      const elapsed = now - lastSeen;
+
+      // Only increment if elapsed time is reasonable (e.g., less than 5 minutes)
+      // to avoid jumping time if a laptop wakes up from sleep
+      if (elapsed > 0 && elapsed < 300000) {
+        await update(userRef, {
+          lastSeen: now,
+          totalStudyTime: increment(elapsed)
+        });
+      } else {
+        await update(userRef, { lastSeen: now });
+      }
+    }
+  } catch (e) {
+    console.warn("Heartbeat failed:", e);
+  }
 }
 
 /**
@@ -174,7 +202,10 @@ export async function updateUserStatus(status?: "active" | "idle", examStarted?:
 
   const userRef = ref(db, `onlineUsers/${key}`);
   const updates: any = {};
-  if (status) updates.status = status;
+  if (status) {
+    updates.status = status;
+    updates.lastSeen = Date.now();
+  }
   if (examStarted !== undefined) updates.examStarted = examStarted;
 
   if (Object.keys(updates).length > 0) {

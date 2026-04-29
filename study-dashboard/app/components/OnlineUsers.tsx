@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Wifi } from "lucide-react";
+import { Users, Wifi, Timer } from "lucide-react";
 import { useOnlineUsers } from "../hooks/useOnlineUsers";
 
 /**
@@ -12,55 +12,90 @@ export default function OnlineUsers() {
   const users = useOnlineUsers();
   const count = users.length;
 
+  const formatDuration = (ms: number) => {
+    if (!ms) return "0m";
+    const minutes = Math.floor(ms / 60000);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ${minutes % 60}m`;
+  };
+
   return (
-    <div className="glass-panel rounded-2xl border border-white/5 p-4 space-y-3">
+    <div className="glass-panel rounded-3xl border border-white/5 p-5 space-y-5 bg-[#070707]/50 shadow-2xl relative overflow-hidden group">
+      <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-3xl rounded-full -mr-12 -mt-12 group-hover:bg-emerald-500/10 transition-colors" />
+      
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Wifi className="w-4 h-4 text-emerald-400" />
-          <span className="text-sm font-medium text-slate-200">Studying Now</span>
+      <div className="flex items-center justify-between relative z-10">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+            <Wifi className="w-4 h-4 text-emerald-400" />
+          </div>
+          <span className="text-sm font-bold text-slate-200 tracking-tight">Active Pulse</span>
         </div>
-        {/* Live pill */}
-        <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1">
+        
+        <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
-            {count} live
+          <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+            {count} LIVE
           </span>
         </div>
       </div>
 
       {/* User list */}
-      {count === 0 ? (
-        <p className="text-xs text-slate-500 text-center py-2">
-          No one online yet. Be the first!
-        </p>
-      ) : (
-        <ul className="space-y-1.5">
-          <AnimatePresence initial={false}>
-            {users.map((user, i) => (
-              <motion.li
-                key={`${user.name}-${user.joinedAt}`}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                transition={{ delay: i * 0.04 }}
-                className="flex items-center gap-2 text-xs text-slate-300 bg-white/[0.03] rounded-lg px-3 py-2 border border-white/5"
-              >
-                {/* Avatar initial */}
-                <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[9px] font-bold flex items-center justify-center shrink-0 uppercase">
-                  {user.name.charAt(0)}
-                </span>
-                <span className="truncate">{user.name}</span>
-              </motion.li>
-            ))}
-          </AnimatePresence>
-        </ul>
-      )}
+      <div className="relative z-10">
+        {count === 0 ? (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-6 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]"
+          >
+            <p className="text-xs text-slate-500 font-medium italic">
+              Station is empty. Start studying!
+            </p>
+          </motion.div>
+        ) : (
+          <ul className="space-y-2">
+            <AnimatePresence initial={false} mode="popLayout">
+              {users.slice(0, 8).map((user, i) => (
+                <motion.li
+                  key={`${user.name}-${user.joinedAt}`}
+                  layout
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="flex items-center justify-between gap-3 text-xs text-slate-300 bg-white/[0.02] hover:bg-white/[0.05] rounded-[1.25rem] px-4 py-3 border border-white/5 transition-all group/item"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-black flex items-center justify-center shrink-0 uppercase shadow-inner">
+                      {user.name.charAt(0)}
+                    </span>
+                    <span className="font-bold truncate max-w-[100px]">{user.name}</span>
+                  </div>
+                  {user.totalStudyTime && user.totalStudyTime > 60000 && (
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 group-hover/item:text-cyan-400 transition-colors">
+                      <Timer className="w-3 h-3" />
+                      {formatDuration(user.totalStudyTime)}
+                    </div>
+                  )}
+                </motion.li>
+              ))}
+            </AnimatePresence>
+            {count > 8 && (
+              <p className="text-[10px] text-center text-slate-500 font-bold uppercase tracking-widest pt-2">
+                + {count - 8} more students
+              </p>
+            )}
+          </ul>
+        )}
+      </div>
 
-      {/* Footer hint */}
-      <p className="text-[10px] text-slate-600 text-center border-t border-white/5 pt-2">
-        Live users shown. History kept in Database.
-      </p>
+      <div className="pt-2 border-t border-white/5 relative z-10">
+        <p className="text-[9px] text-slate-600 text-center font-bold uppercase tracking-widest leading-relaxed">
+          Real-time metrics enabled <br/> 
+          <span className="text-emerald-500/50">Tracking active engagement</span>
+        </p>
+      </div>
     </div>
   );
 }
