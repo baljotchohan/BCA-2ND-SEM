@@ -6,13 +6,13 @@ import { db } from "../lib/firebase";
  * Returns the key used for the user.
  */
 export async function joinExam(userName: string): Promise<string> {
-  // Use localStorage instead of sessionStorage so returning users use the same ID (clean DB)
-  let key = typeof window !== 'undefined' ? localStorage.getItem("persistentUserId") : null;
+  // Create a predictable key based on the user's name so multiple devices or 
+  // sessions with the same name update the same database record instead of creating duplicates.
+  const safeName = userName.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  const key = `user_${safeName}`;
 
-  // If no persistent key, generate a new unique ID
-  if (!key) {
-    key = `user_${Math.random().toString(36).slice(2, 11)}`;
-    if (typeof window !== 'undefined') localStorage.setItem("persistentUserId", key);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem("persistentUserId", key);
   }
 
   const userRef = ref(db, `onlineUsers/${key}`);

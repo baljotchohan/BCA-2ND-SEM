@@ -11,8 +11,12 @@ import {
   Lock,
   ArrowLeft,
   AlertCircle,
-  MonitorSmartphone
+  MonitorSmartphone,
+  ChevronDown,
+  ChevronUp,
+  History
 } from "lucide-react";
+import React, { Fragment } from "react";
 import Link from "next/link";
 import { ref, remove } from "firebase/database";
 import { db } from "../lib/firebase";
@@ -23,6 +27,7 @@ export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState("");
   const users = useOnlineUsers(true); // true to include idle users
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,7 +187,7 @@ export default function AdminDashboard() {
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Device & IP</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Joined At</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status & Visits</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Activity History</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Current Activity</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Duration</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400 text-right">Actions</th>
                 </tr>
@@ -190,78 +195,112 @@ export default function AdminDashboard() {
               <tbody className="divide-y divide-white/5">
                 <AnimatePresence>
                   {users.map((user) => (
-                    <motion.tr
-                      key={user.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="hover:bg-white/[0.02] transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold uppercase text-xs">
-                            {user.name.charAt(0)}
+                    <Fragment key={user.id}>
+                      <motion.tr
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="hover:bg-white/[0.02] transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold uppercase text-xs">
+                              {user.name.charAt(0)}
+                            </div>
+                            <span className="font-medium">{user.name}</span>
                           </div>
-                          <span className="font-medium">{user.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[11px] font-medium text-slate-300 flex items-center gap-1.5">
-                            <MonitorSmartphone className="w-3 h-3 text-slate-400" />
-                            {getBrowserInfo(user)}
-                          </span>
-                          <span className="text-[10px] text-slate-500 font-mono tracking-wider">
-                            {user.ip !== "Unknown" ? user.ip : (user.platform || 'Unknown')}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-400">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-3.5 h-3.5" /> {formatTime(user.joinedAt)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-2">
-                          <span className={`w-max inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${user.status === "active"
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                              : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                            }`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${user.status === "active" ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
-                            {user.status}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-medium">
-                            {user.totalVisits} Total Visits
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-1 max-w-[200px]" title={user.history?.map(h => `${new Date(h.timestamp).toLocaleTimeString()}: ${h.action}`).join('\n')}>
-                          <span className="text-[11px] font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/20 px-2 py-1 rounded-md uppercase w-max truncate">
-                            {user.currentActivity || (user.examStarted ? "Exam In Progress" : "Browsing")}
-                          </span>
-                          <span className="text-[10px] text-slate-500 font-medium truncate">
-                            {user.history && user.history.length > 1 
-                              ? `Prev: ${user.history[user.history.length - 2].action}` 
-                              : "No prior history"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-400">
-                        <div className="flex items-center gap-2">
-                          <Activity className="w-3.5 h-3.5" /> {calculateDuration(user.joinedAt)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => removeUser(user.id)}
-                          className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
-                          title="Remove User"
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[11px] font-medium text-slate-300 flex items-center gap-1.5">
+                              <MonitorSmartphone className="w-3 h-3 text-slate-400" />
+                              {getBrowserInfo(user)}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-mono tracking-wider">
+                              {user.ip !== "Unknown" ? user.ip : (user.platform || 'Unknown')}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-400">
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-3.5 h-3.5" /> {formatTime(user.joinedAt)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-2">
+                            <span className={`w-max inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${user.status === "active"
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                              }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${user.status === "active" ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
+                              {user.status}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              {user.totalVisits} Total Visits
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-1 max-w-[200px]">
+                            <span className="text-[11px] font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/20 px-2 py-1 rounded-md uppercase w-max truncate">
+                              {user.currentActivity || (user.examStarted ? "Exam In Progress" : "Browsing")}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-400">
+                          <div className="flex items-center gap-2">
+                            <Activity className="w-3.5 h-3.5" /> {calculateDuration(user.joinedAt)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button
+                            onClick={() => setExpandedUserId(expandedUserId === user.id ? null : user.id)}
+                            className="p-2 text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-all mr-2"
+                            title={expandedUserId === user.id ? "Hide History" : "View History"}
+                          >
+                            {expandedUserId === user.id ? <ChevronUp className="w-4 h-4" /> : <History className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => removeUser(user.id)}
+                            className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+                            title="Remove User"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </motion.tr>
+                      {expandedUserId === user.id && (
+                        <motion.tr
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="bg-white/[0.01]"
                         >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </motion.tr>
+                          <td colSpan={7} className="px-6 py-6 border-t border-white/5">
+                            <div className="flex flex-col gap-4">
+                              <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                                <History className="w-4 h-4 text-emerald-400" /> Activity History
+                              </h4>
+                              {user.history && user.history.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  {user.history.map((h, i) => (
+                                    <div key={i} className="flex items-start gap-3 bg-white/5 rounded-xl p-3 border border-white/5">
+                                      <div className="mt-0.5 w-2 h-2 rounded-full bg-emerald-500/50" />
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-medium text-slate-200">{h.action}</span>
+                                        <span className="text-[10px] text-slate-500">{new Date(h.timestamp).toLocaleString()}</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-slate-500 italic">No history available for this user.</p>
+                              )}
+                            </div>
+                          </td>
+                        </motion.tr>
+                      )}
+                    </Fragment>
                   ))}
                 </AnimatePresence>
                 {users.length === 0 && (

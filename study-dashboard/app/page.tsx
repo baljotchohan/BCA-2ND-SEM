@@ -252,6 +252,8 @@ export default function StudyDashboard() {
   const [userName, setUserName] = useState("");
   const [nameInput, setNameInput] = useState("");
   const [isJoining, setIsJoining] = useState(false);
+  const [nameAttempts, setNameAttempts] = useState(0);
+  const [nameError, setNameError] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   const [nextExam, setNextExam] = useState<Subject | null>(null);
@@ -310,6 +312,20 @@ export default function StudyDashboard() {
   const handleJoinExam = async () => {
     const trimmed = nameInput.trim();
     if (!trimmed) return;
+
+    const alphaCount = (trimmed.match(/[a-zA-Z]/g) || []).length;
+    if (alphaCount < 4) {
+      setNameError("Name must contain at least 4 letters.");
+      return;
+    }
+
+    if (nameAttempts === 0) {
+      setNameError("Incorrect name, please re-enter your correct name.");
+      setNameAttempts(1);
+      return;
+    }
+
+    setNameError("");
     setIsJoining(true);
     try {
       await joinExam(trimmed);
@@ -814,16 +830,24 @@ export default function StudyDashboard() {
               </div>
 
               {/* Input */}
-              <input
-                ref={nameInputRef}
-                type="text"
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleJoinExam()}
-                placeholder="Your name…"
-                maxLength={40}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-sm"
-              />
+              <div className="text-left space-y-1">
+                <input
+                  ref={nameInputRef}
+                  type="text"
+                  value={nameInput}
+                  onChange={(e) => {
+                    setNameInput(e.target.value);
+                    if (nameError) setNameError("");
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && handleJoinExam()}
+                  placeholder="Your name…"
+                  maxLength={40}
+                  className={`w-full bg-white/5 border ${nameError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-white/10 focus:border-emerald-500 focus:ring-emerald-500'} rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 transition-all text-sm`}
+                />
+                {nameError && (
+                  <p className="text-xs text-red-400 font-medium px-1">{nameError}</p>
+                )}
+              </div>
 
               {/* Buttons */}
               <div className="flex gap-3">
