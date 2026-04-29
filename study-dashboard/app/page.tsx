@@ -85,8 +85,8 @@ const subjects: Subject[] = [
 
   {
     id: "s5",
-    name: "Intro to AI & Data Science",
-    code: "AI-205",
+    name: "Software Engineering",
+    code: "BCA-205",
     progress: 0,
     displayDate: "May 06",
     examDate: "2026-05-06T09:30:00",
