@@ -16,6 +16,11 @@ interface ChatMessage {
 
 const COMMON_EMOJIS = ["❤️", "🔥", "😂", "😮", "🙌", "👍", "✨", "📚", "💯", "✅"];
 
+// CRITICAL: Chat data lives under /onlineUsers/globalChat/ because
+// Firebase rules only grant read/write to the /onlineUsers path.
+const CHAT_MESSAGES_PATH = "onlineUsers/globalChat/messages";
+const CHAT_TYPING_PATH = "onlineUsers/globalChat/typing";
+
 export default function GlobalChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -46,18 +51,14 @@ export default function GlobalChat() {
       }
     };
 
-    // Check immediately
     checkLogin();
-
-    // Re-check periodically in case user joins after initial mount
     const interval = setInterval(checkLogin, 2000);
-
     return () => clearInterval(interval);
   }, []);
 
-  // Listen for messages
+  // Listen for messages from Firebase
   useEffect(() => {
-    const chatRef = ref(db, "globalChat/messages");
+    const chatRef = ref(db, CHAT_MESSAGES_PATH);
     const chatQuery = query(chatRef, limitToLast(50));
 
     const unsubscribeMessages = onValue(chatQuery, (snapshot) => {
@@ -75,7 +76,7 @@ export default function GlobalChat() {
         setMessages([]);
       }
     }, (error) => {
-      console.error("Error listening to chat messages:", error);
+      console.error("Chat listener error:", error);
     });
 
     return () => unsubscribeMessages();
@@ -85,12 +86,12 @@ export default function GlobalChat() {
   useEffect(() => {
     if (!userId) return;
 
-    const typingRef = ref(db, "globalChat/typing");
+    const typingRef = ref(db, CHAT_TYPING_PATH);
     const unsubscribeTyping = onValue(typingRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         const typingList = { ...data };
-        delete typingList[userId]; // Don't show "You are typing"
+        delete typingList[userId];
         setIsTyping(typingList);
       } else {
         setIsTyping({});
@@ -109,7 +110,6 @@ export default function GlobalChat() {
 
   useEffect(() => {
     if (isOpen) {
-      // Small delay to let the DOM render first
       setTimeout(scrollToBottom, 100);
     }
   }, [messages, isOpen, isTyping, scrollToBottom]);
@@ -125,7 +125,7 @@ export default function GlobalChat() {
     setMessage(text);
     if (!userId) return;
 
-    const typingRef = ref(db, `globalChat/typing/${userId}`);
+    const typingRef = ref(db, `${CHAT_TYPING_PATH}/${userId}`);
     if (text.trim().length > 0) {
       set(typingRef, userName).catch(() => {});
       onDisconnect(typingRef).remove().catch(() => {});
@@ -139,18 +139,17 @@ export default function GlobalChat() {
     const trimmedMsg = message.trim();
     if (!trimmedMsg || isSending) return;
 
-    // Re-check identity from localStorage in case it changed
     const currentName = localStorage.getItem("examUserName") || userName;
     const currentId = localStorage.getItem("persistentUserId") || userId;
 
     if (!currentName || !currentId) {
-      console.error("Cannot send message: user not logged in");
+      console.error("Cannot send: not logged in");
       return;
     }
 
     setIsSending(true);
-    const chatRef = ref(db, "globalChat/messages");
-    const typingRef = ref(db, `globalChat/typing/${currentId}`);
+    const chatRef = ref(db, CHAT_MESSAGES_PATH);
+    const typingRef = ref(db, `${CHAT_TYPING_PATH}/${currentId}`);
 
     try {
       await push(chatRef, {
@@ -163,7 +162,7 @@ export default function GlobalChat() {
       remove(typingRef).catch(() => {});
       setShowEmojiPicker(false);
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("Send message error:", error);
     } finally {
       setIsSending(false);
     }
@@ -266,7 +265,7 @@ export default function GlobalChat() {
                     <MessageCircle className="w-7 h-7 text-slate-700" />
                   </div>
                   <p className="text-sm font-bold text-slate-300">Channel Initialized</p>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Waiting for first transmission...</p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Send the first message!</p>
                 </div>
               ) : (
                 messages.map((msg, i) => {
@@ -360,7 +359,7 @@ export default function GlobalChat() {
                     placeholder="Message..."
                     maxLength={500}
                     className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-3 pr-10 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/10 transition-all"
-                    style={{ fontSize: '16px' }} /* Prevents iOS zoom on focus */
+                    style={{ fontSize: '16px' }}
                   />
                   <button 
                     type="button"

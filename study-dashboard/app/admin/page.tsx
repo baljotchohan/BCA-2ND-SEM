@@ -77,7 +77,8 @@ export default function AdminDashboard() {
 
   const clearGlobalChat = async () => {
     if (confirm("Are you sure you want to clear ALL global chat messages?")) {
-      await remove(ref(db, "globalChat/messages"));
+      await remove(ref(db, "onlineUsers/globalChat/messages"));
+      await remove(ref(db, "onlineUsers/globalChat/typing"));
     }
   };
 

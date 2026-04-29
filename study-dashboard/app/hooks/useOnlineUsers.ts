@@ -21,6 +21,10 @@ export interface OnlineUser {
   isHidden?: boolean;
 }
 
+// Keys under /onlineUsers that are NOT actual users — they are system data nodes.
+// The chat system stores data at /onlineUsers/globalChat/ to work within Firebase rules.
+const SYSTEM_KEYS = new Set(["globalChat"]);
+
 /**
  * Subscribes to the "onlineUsers" node in Firebase Realtime Database
  * and returns a live-updating array of online users.
@@ -45,8 +49,14 @@ export function useOnlineUsers(includeAll = false): OnlineUser[] {
       }
       
       const parsed: OnlineUser[] = Object.entries(data)
+        // Skip system keys like "globalChat" which stores chat data, not user data
+        .filter(([id]) => !SYSTEM_KEYS.has(id))
         .map(([id, entry]) => {
           const e = entry as any;
+          // Extra safety: skip entries that don't have a 'name' field (not a user node)
+          if (!e || typeof e !== 'object' || !e.name) {
+            return null;
+          }
           return {
             id,
             name: e.name || "Unknown",
@@ -62,13 +72,14 @@ export function useOnlineUsers(includeAll = false): OnlineUser[] {
             totalVisits: e.totalVisits || 1,
             totalStudyTime: e.totalStudyTime || 0,
             history: e.history ? Object.entries(e.history).map(([, h]: [string, any]) => ({
-              action: h.action,
-              timestamp: h.timestamp
+              action: h?.action || "Unknown",
+              timestamp: h?.timestamp || 0
             })).sort((a, b) => b.timestamp - a.timestamp) : [],
             currentActivity: e.currentActivity || "Browsing Dashboard",
             isHidden: e.isHidden || false,
           };
-        });
+        })
+        .filter((u): u is OnlineUser => u !== null);
       setRawUsers(parsed);
     }, (error) => {
       console.error("Error listening to online users:", error);
@@ -79,7 +90,7 @@ export function useOnlineUsers(includeAll = false): OnlineUser[] {
 
   // Periodic tick to re-evaluate staleness
   useEffect(() => {
-    if (includeAll) return; // No need to tick for leaderboard
+    if (includeAll) return;
     const interval = setInterval(() => setTick(t => t + 1), 15000);
     return () => clearInterval(interval);
   }, [includeAll]);

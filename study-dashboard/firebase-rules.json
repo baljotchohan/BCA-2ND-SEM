@@ -3,14 +3,17 @@
     "onlineUsers": {
       ".read": true,
       ".write": true,
-      ".indexOn": ["name"],
+      ".indexOn": ["name", "status", "lastSeen"],
+      "globalChat": {
+        ".validate": true
+      },
       "$user_id": {
-        ".validate": "newData.hasChildren(['name', 'joinedAt', 'status'])",
+        ".validate": "newData.hasChildren(['name', 'status'])",
         "name": {
           ".validate": "newData.isString() && newData.val().length <= 50"
         },
         "status": {
-          ".validate": "newData.val() == 'active' || newData.val() == 'idle'"
+          ".validate": "newData.val() == 'active' || newData.val() == 'idle' || newData.val() == 'offline'"
         },
         "joinedAt": {
           ".validate": "newData.isNumber()"
