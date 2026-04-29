@@ -98,13 +98,21 @@ export async function joinExam(userName: string): Promise<string> {
     history = [{ action: "First Visit", timestamp: Date.now() }];
   }
 
+  const now = Date.now();
+  const readableNow = new Date(now).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+  const readableFirstSeen = new Date(firstSeen).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
   // Initial presence record using update to preserve existing fields like 'history' if we just updated it
   await update(userRef, {
     name: userName.trim(),
-    joinedAt: firstSeen, // Keep the very first join time for this identity
-    currentSessionStart: Date.now(),
-    lastActive: Date.now(),
-    lastSeen: Date.now(),
+    joinedAt: firstSeen, 
+    joinedAtReadable: readableFirstSeen,
+    currentSessionStart: now,
+    currentSessionStartReadable: readableNow,
+    lastActive: now,
+    lastActiveReadable: readableNow,
+    lastSeen: now,
+    lastSeenReadable: readableNow,
     firstSeen,
     totalVisits,
     totalStudyTime: existingData.totalStudyTime || 0,
@@ -147,10 +155,15 @@ export async function trackActivity(actionName: string): Promise<void> {
       timestamp: Date.now()
     });
 
+    const now = Date.now();
+    const readableNow = new Date(now).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
     // 2. Update status
     await update(userRef, { 
-      lastActive: Date.now(),
-      lastSeen: Date.now(),
+      lastActive: now,
+      lastActiveReadable: readableNow,
+      lastSeen: now,
+      lastSeenReadable: readableNow,
       currentActivity: actionName
     });
   } catch (e) {
@@ -177,15 +190,21 @@ export async function sendHeartbeat(): Promise<void> {
       const lastSeen = data.lastSeen || now;
       const elapsed = now - lastSeen;
 
+      const readableNow = new Date(now).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
       // Only increment if elapsed time is reasonable (e.g., less than 5 minutes)
       // to avoid jumping time if a laptop wakes up from sleep
       if (elapsed > 0 && elapsed < 300000) {
         await update(userRef, {
           lastSeen: now,
+          lastSeenReadable: readableNow,
           totalStudyTime: increment(elapsed)
         });
       } else {
-        await update(userRef, { lastSeen: now });
+        await update(userRef, { 
+          lastSeen: now,
+          lastSeenReadable: readableNow
+        });
       }
     }
   } catch (e) {
@@ -203,8 +222,10 @@ export async function updateUserStatus(status?: "active" | "idle", examStarted?:
   const userRef = ref(db, `onlineUsers/${key}`);
   const updates: any = {};
   if (status) {
+    const now = Date.now();
     updates.status = status;
-    updates.lastSeen = Date.now();
+    updates.lastSeen = now;
+    updates.lastSeenReadable = new Date(now).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
   }
   if (examStarted !== undefined) updates.examStarted = examStarted;
 
