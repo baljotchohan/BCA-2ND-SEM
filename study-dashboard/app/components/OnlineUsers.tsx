@@ -59,7 +59,7 @@ export default function OnlineUsers() {
 
       {/* Footer hint */}
       <p className="text-[10px] text-slate-600 text-center border-t border-white/5 pt-2">
-        Auto-removed when tab closes
+        Live users shown. History kept in Database.
       </p>
     </div>
   );

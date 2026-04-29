@@ -245,6 +245,7 @@ export default function StudyDashboard() {
   const [activeTab, setActiveTab] = useState("questions");
   const [mounted, setMounted] = useState(false);
   const [upcomingExams, setUpcomingExams] = useState<Subject[]>([]);
+  const [greetingData, setGreetingData] = useState({ greeting: "Welcome", quote: "Ready to crush your exams today?" });
 
   // --- Presence state ---
   const [showNameModal, setShowNameModal] = useState(false);
@@ -257,8 +258,28 @@ export default function StudyDashboard() {
 
   useEffect(() => {
     setMounted(true);
+    
+    // Generate greeting based on time of day
+    const hour = new Date().getHours();
+    let greeting = "Good evening";
+    if (hour >= 5 && hour < 12) greeting = "Good morning";
+    else if (hour >= 12 && hour < 17) greeting = "Good afternoon";
+    else if (hour >= 17 && hour < 22) greeting = "Good evening";
+    else greeting = "Late night studying";
+
+    const quotes = [
+      "Ready to crush your exams today?",
+      "Consistency is the key to mastering your syllabus.",
+      "Let's make today a highly productive one.",
+      "Every session brings you closer to top grades.",
+      "Focus, learn, and conquer your exams.",
+      "Your future self will thank you for today's effort.",
+      "Step by step, you're building your success."
+    ];
+    const quote = quotes[Math.floor(Math.random() * quotes.length)];
+    setGreetingData({ greeting, quote });
     // Show name modal on first visit
-    const saved = sessionStorage.getItem("examUserName");
+    const saved = localStorage.getItem("examUserName");
     if (saved) {
       setUserName(saved);
       // Auto-reconnect if name exists
@@ -293,7 +314,7 @@ export default function StudyDashboard() {
     try {
       await joinExam(trimmed);
       setUserName(trimmed);
-      sessionStorage.setItem("examUserName", trimmed);
+      localStorage.setItem("examUserName", trimmed);
       setShowNameModal(false);
     } catch (err) {
       console.error("Failed to join exam presence:", err);
@@ -350,13 +371,29 @@ export default function StudyDashboard() {
             className="relative overflow-hidden glass-panel rounded-3xl p-6 md:p-8 border-l-4 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6"
             style={{ borderLeftColor: accentColor }}
           >
-            <div>
-              <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mb-2">
-                BCA 2nd Sem <span style={{ color: accentColor }}>Prep Hub</span>
-              </h1>
-              <p className="text-slate-400 text-sm md:text-base">
-                Your ultimate study arsenal. Master your exams with structured materials.
-              </p>
+            <div className="w-full xl:w-auto">
+              {userName ? (
+                <div className="flex flex-col gap-2 mb-4 xl:mb-0">
+                  <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white flex items-center flex-wrap gap-x-3 gap-y-1">
+                    <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-sm">
+                      {greetingData.greeting},
+                    </span>
+                    <span>{userName}.</span>
+                  </h1>
+                  <p className="text-slate-400 text-base md:text-lg font-medium max-w-2xl">
+                    {greetingData.quote}
+                  </p>
+                </div>
+              ) : (
+                <div className="mb-4 xl:mb-0">
+                  <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
+                    BCA 2nd Sem <span style={{ color: accentColor }}>Prep Hub</span>
+                  </h1>
+                  <p className="text-slate-400 text-sm md:text-base">
+                    Your ultimate study arsenal. Master your exams with structured materials.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Countdown Clock */}
@@ -774,10 +811,6 @@ export default function StudyDashboard() {
 
               <div>
                 <h2 className="text-xl font-bold text-white mb-1">Join the Study Session</h2>
-                <p className="text-sm text-slate-400">
-                  Enter your name to appear in the live{" "}
-                  <span className="text-emerald-400 font-medium">Online Students</span> list.
-                </p>
               </div>
 
               {/* Input */}
@@ -795,23 +828,13 @@ export default function StudyDashboard() {
               {/* Buttons */}
               <div className="flex gap-3">
                 <button
-                  onClick={() => setShowNameModal(false)}
-                  className="flex-1 py-3 rounded-xl border border-white/10 text-slate-400 hover:bg-white/5 text-sm transition-colors"
-                >
-                  Skip
-                </button>
-                <button
                   onClick={handleJoinExam}
                   disabled={!nameInput.trim() || isJoining}
-                  className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all shadow-[0_0_16px_rgba(16,185,129,0.3)]"
+                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all shadow-[0_0_16px_rgba(16,185,129,0.3)]"
                 >
                   {isJoining ? "Joining…" : "Join"}
                 </button>
               </div>
-
-              <p className="text-[10px] text-slate-600">
-                You&apos;ll be auto-removed when you close this tab.
-              </p>
             </motion.div>
           </motion.div>
         )}

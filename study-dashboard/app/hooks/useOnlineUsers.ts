@@ -27,19 +27,21 @@ export function useOnlineUsers(): OnlineUser[] {
         setUsers([]);
         return;
       }
-      // data is { [key: string]: { name: string, joinedAt: number } }
-      const parsed: OnlineUser[] = Object.entries(data).map(([id, entry]) => ({
-        id,
-        name: (entry as any).name,
-        joinedAt: (entry as any).joinedAt,
-        status: (entry as any).status || "active",
-        examStarted: (entry as any).examStarted || false,
-      }));
+      // data is { [key: string]: { name: string, joinedAt: number, status: string } }
+      const parsed: OnlineUser[] = Object.entries(data)
+        .map(([id, entry]) => ({
+          id,
+          name: (entry as any).name,
+          joinedAt: (entry as any).joinedAt,
+          status: (entry as any).status || "active",
+          examStarted: (entry as any).examStarted || false,
+        }))
+        .filter((user) => user.status === "active"); // Only show active users in the UI
       setUsers(parsed);
     });
 
     // Cleanup: detach the listener
-    return () => off(usersRef);
+    return () => unsubscribe();
   }, []);
 
   return users;

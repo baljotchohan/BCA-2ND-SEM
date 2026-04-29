@@ -1,4 +1,4 @@
-import { ref, set, onDisconnect, update, get } from "firebase/database";
+import { ref, set, onDisconnect, update } from "firebase/database";
 import { db } from "../lib/firebase";
 
 /**
@@ -20,7 +20,8 @@ export async function joinExam(userName: string): Promise<string> {
     // Schedule auto-removal on disconnect
     // Calling this safely (cancel any previous onDisconnect on this ref first just in case)
     await onDisconnect(userRef).cancel();
-    await onDisconnect(userRef).remove();
+    // Instead of remove(), we update the status so the DB keeps a record!
+    await onDisconnect(userRef).update({ status: "idle" });
   } catch (e) {
     console.error("Firebase onDisconnect error (safe to ignore in dev):", e);
   }
@@ -54,7 +55,7 @@ export async function updateUserStatus(status?: "active" | "idle", examStarted?:
     } catch (e) {
       console.warn("Failed to update status, node might be deleted. Re-joining...", e);
       // If update fails due to validation (missing parent node), recreate it!
-      const name = sessionStorage.getItem("examUserName");
+      const name = localStorage.getItem("examUserName");
       if (name) {
         await joinExam(name);
       }
@@ -73,5 +74,5 @@ export async function leaveExam(): Promise<void> {
   const userRef = ref(db, `onlineUsers/${key}`);
   await remove(userRef);
   sessionStorage.removeItem("presenceKey");
-  sessionStorage.removeItem("examUserName");
+  localStorage.removeItem("examUserName");
 }
