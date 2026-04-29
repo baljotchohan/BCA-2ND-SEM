@@ -127,7 +127,7 @@ export default function GlobalChat() {
 
     const typingRef = ref(db, `${CHAT_TYPING_PATH}/${userId}`);
     if (text.trim().length > 0) {
-      set(typingRef, userName).catch(() => {});
+      set(typingRef, "Someone").catch(() => {}); // Identity hidden
       onDisconnect(typingRef).remove().catch(() => {});
     } else {
       remove(typingRef).catch(() => {});
