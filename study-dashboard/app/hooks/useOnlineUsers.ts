@@ -47,7 +47,10 @@ export function useOnlineUsers(includeIdle = false): OnlineUser[] {
           deviceModel: (entry as any).deviceModel || "Unknown",
           ip: (entry as any).ip || "Unknown",
           totalVisits: (entry as any).totalVisits || 1,
-          history: (entry as any).history || [],
+          history: (entry as any).history ? Object.entries((entry as any).history).map(([hid, h]: [string, any]) => ({
+            action: h.action,
+            timestamp: h.timestamp
+          })).sort((a, b) => b.timestamp - a.timestamp) : [],
           currentActivity: (entry as any).currentActivity || "Browsing Dashboard"
         }))
         .filter((user) => includeIdle || user.status === "active"); // Filter by active if not including idle

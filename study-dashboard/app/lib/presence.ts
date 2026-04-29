@@ -93,20 +93,31 @@ export async function joinExam(userName: string): Promise<string> {
     history = [{ action: "First Visit", timestamp: Date.now() }];
   }
 
-  // Initial presence record using set to ensure complete node creation
-  await set(userRef, {
+  // Initial presence record using update to preserve existing fields like 'history' if we just updated it
+  await update(userRef, {
     name: userName.trim(),
-    joinedAt: Date.now(), // This session start time
+    joinedAt: firstSeen, // Keep the very first join time for this identity
+    currentSessionStart: Date.now(),
     lastActive: Date.now(),
+    lastSeen: Date.now(),
     firstSeen,
     totalVisits,
-    history,
     status: "active",
     examStarted: false,
     userAgent,
     platform,
     deviceModel,
     ip
+  });
+
+  // Log the visit in history
+  const historyRef = ref(db, `onlineUsers/${key}/history`);
+  const { push } = await import("firebase/database");
+  await push(historyRef, {
+    action: "Logged In",
+    timestamp: Date.now(),
+    ip,
+    device: deviceModel
   });
 
   return key;
@@ -119,25 +130,39 @@ export async function trackActivity(actionName: string): Promise<void> {
   const key = typeof window !== 'undefined' ? localStorage.getItem("persistentUserId") : null;
   if (!key) return;
 
-  const { get } = await import("firebase/database");
   const userRef = ref(db, `onlineUsers/${key}`);
+  const historyRef = ref(db, `onlineUsers/${key}/history`);
+  const { push } = await import("firebase/database");
   
   try {
-    const snapshot = await get(userRef);
-    if (!snapshot.exists()) return;
-    
-    let history = snapshot.val().history || [];
-    history.push({ action: actionName, timestamp: Date.now() });
-    if (history.length > 50) history = history.slice(history.length - 50);
+    // 1. Log to history (atomic push)
+    await push(historyRef, {
+      action: actionName,
+      timestamp: Date.now()
+    });
 
+    // 2. Update status
     await update(userRef, { 
-      history,
       lastActive: Date.now(),
+      lastSeen: Date.now(),
       currentActivity: actionName
     });
   } catch (e) {
     console.warn("Failed to track activity:", e);
   }
+}
+
+/**
+ * Updates the 'lastSeen' timestamp periodically (Heartbeat)
+ */
+export async function sendHeartbeat(): Promise<void> {
+  const key = typeof window !== 'undefined' ? localStorage.getItem("persistentUserId") : null;
+  if (!key) return;
+
+  const userRef = ref(db, `onlineUsers/${key}`);
+  try {
+    await update(userRef, { lastSeen: Date.now() });
+  } catch (e) {}
 }
 
 /**

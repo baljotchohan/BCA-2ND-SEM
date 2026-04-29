@@ -18,7 +18,7 @@ import {
   UserCheck,
   type LucideIcon,
 } from "lucide-react";
-import { joinExam, updateUserStatus } from "./lib/presence";
+import { joinExam, updateUserStatus, sendHeartbeat } from "./lib/presence";
 import OnlineUsers from "./components/OnlineUsers";
 
 // --- Types & Data ---
@@ -298,8 +298,15 @@ export default function StudyDashboard() {
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Heartbeat every 30 seconds
+    const heartbeatInterval = setInterval(() => {
+      sendHeartbeat().catch(() => {});
+    }, 30000);
+
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      clearInterval(heartbeatInterval);
     };
   }, []);
 

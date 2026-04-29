@@ -52,8 +52,9 @@ export default function AdminDashboard() {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const calculateDuration = (joinedAt: number) => {
-    const minutes = Math.floor((Date.now() - joinedAt) / 60000);
+  const calculateDuration = (joinedAt: number, status?: string, lastSeen?: number) => {
+    const end = (status === "offline" && lastSeen) ? lastSeen : Date.now();
+    const minutes = Math.floor((end - joinedAt) / 60000);
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
     return `${hours}h ${minutes % 60}m`;
@@ -146,8 +147,16 @@ export default function AdminDashboard() {
             <div className="glass-panel border border-white/5 rounded-2xl px-6 py-3 flex items-center gap-3">
               <Users className="text-emerald-400 w-5 h-5" />
               <div>
+                <div className="text-2xl font-bold">{users.filter(u => u.status === "active").length}</div>
+                <div className="text-[10px] text-emerald-500 uppercase tracking-wider font-bold">Online Now</div>
+              </div>
+            </div>
+
+            <div className="glass-panel border border-white/5 rounded-2xl px-6 py-3 flex items-center gap-3">
+              <Activity className="text-slate-400 w-5 h-5" />
+              <div>
                 <div className="text-2xl font-bold">{users.length}</div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-wider">Total Online</div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Total Tracked</div>
               </div>
             </div>
           </div>
@@ -160,10 +169,10 @@ export default function AdminDashboard() {
                 <tr className="bg-white/5 border-b border-white/10">
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Name</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Device & IP</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Joined At</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Last Seen</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status & Visits</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Live Activity</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Duration</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Session / Total</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400 text-right">Actions</th>
                 </tr>
               </thead>
@@ -197,8 +206,13 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-400">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-3.5 h-3.5" /> {formatTime(user.joinedAt)}
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2 text-white font-medium">
+                              <Clock className="w-3.5 h-3.5 text-emerald-400" /> {formatTime((user as any).lastSeen || user.joinedAt)}
+                            </div>
+                            <div className="text-[10px] text-slate-500 uppercase ml-5">
+                              Joined {new Date(user.joinedAt).toLocaleDateString()}
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -232,8 +246,13 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-400">
-                          <div className="flex items-center gap-2">
-                            <Activity className="w-3.5 h-3.5" /> {calculateDuration(user.joinedAt)}
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2 text-cyan-400">
+                              <Activity className="w-3.5 h-3.5" /> {calculateDuration((user as any).currentSessionStart || user.joinedAt, user.status, (user as any).lastSeen)}
+                            </div>
+                            <div className="text-[10px] text-slate-500 ml-5">
+                              Total: {calculateDuration(user.joinedAt, user.status, (user as any).lastSeen)}
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right">
