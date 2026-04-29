@@ -10,7 +10,8 @@ import {
   ShieldCheck,
   Lock,
   ArrowLeft,
-  AlertCircle
+  AlertCircle,
+  MonitorSmartphone
 } from "lucide-react";
 import Link from "next/link";
 import { ref, remove } from "firebase/database";
@@ -21,7 +22,7 @@ export default function AdminDashboard() {
   const [password, setPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState("");
-  const users = useOnlineUsers();
+  const users = useOnlineUsers(true); // true to include idle users
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +77,36 @@ export default function AdminDashboard() {
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
     return `${hours}h ${minutes % 60}m`;
+  };
+
+  const getBrowserInfo = (user: OnlineUser) => {
+    const ua = user.userAgent;
+    if (!ua || ua === "Unknown") return user.deviceModel !== "Unknown" ? user.deviceModel : "Unknown Device";
+    
+    let browser = "Unknown Browser";
+    if (ua.includes("Firefox")) browser = "Firefox";
+    else if (ua.includes("SamsungBrowser")) browser = "Samsung Internet";
+    else if (ua.includes("Opera") || ua.includes("OPR")) browser = "Opera";
+    else if (ua.includes("Trident")) browser = "IE";
+    else if (ua.includes("Edge") || ua.includes("Edg")) browser = "Edge";
+    else if (ua.includes("Chrome")) browser = "Chrome";
+    else if (ua.includes("Safari")) browser = "Safari";
+
+    let os = "Unknown OS";
+    if (ua.includes("Win")) os = "Windows";
+    else if (ua.includes("like Mac")) os = "iOS";
+    else if (ua.includes("Mac")) os = "MacOS";
+    else if (ua.includes("Android")) os = "Android";
+    else if (ua.includes("Linux")) os = "Linux";
+
+    const baseInfo = `${os} • ${browser}`;
+    
+    // If we successfully extracted a specific device model, show it alongside!
+    if (user.deviceModel && user.deviceModel !== "Unknown") {
+      return `${user.deviceModel} (${browser})`;
+    }
+
+    return baseInfo;
   };
 
   if (!isAuthenticated) {
@@ -148,6 +179,7 @@ export default function AdminDashboard() {
               <thead>
                 <tr className="bg-white/5 border-b border-white/10">
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Name</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Device & IP</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Joined At</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Exam</th>
@@ -171,6 +203,17 @@ export default function AdminDashboard() {
                             {user.name.charAt(0)}
                           </div>
                           <span className="font-medium">{user.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[11px] font-medium text-slate-300 flex items-center gap-1.5">
+                            <MonitorSmartphone className="w-3 h-3 text-slate-400" />
+                            {getBrowserInfo(user)}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-mono tracking-wider">
+                            {user.ip !== "Unknown" ? user.ip : (user.platform || 'Unknown')}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-400">
@@ -213,7 +256,7 @@ export default function AdminDashboard() {
                 </AnimatePresence>
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500 italic">
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500 italic">
                       No online users currently tracking
                     </td>
                   </tr>

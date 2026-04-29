@@ -16,6 +16,52 @@ export async function joinExam(userName: string): Promise<string> {
 
   const userRef = ref(db, `onlineUsers/${key}`);
 
+  let ip = "Unknown";
+  try {
+    const res = await fetch("https://api.ipify.org?format=json");
+    const data = await res.json();
+    if (data.ip) ip = data.ip;
+  } catch (e) {
+    console.warn("Failed to fetch IP", e);
+  }
+
+  const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : "Unknown";
+  const platform = typeof navigator !== 'undefined' ? (navigator as any).platform || "Unknown" : "Unknown";
+  
+  let deviceModel = "Unknown";
+  if (typeof window !== 'undefined') {
+    // 1. Try to get exact model from User-Agent Client Hints API (Modern Android/Chrome)
+    if ('userAgentData' in navigator) {
+      try {
+        const uaData: any = navigator.userAgentData;
+        const highEntropy = await uaData.getHighEntropyValues(['model']);
+        if (highEntropy.model) {
+          deviceModel = highEntropy.model;
+        }
+      } catch (e) {}
+    }
+
+    // 2. Fallback to Regex extraction from User Agent string
+    if (deviceModel === "Unknown" && userAgent !== "Unknown") {
+      const androidMatch = userAgent.match(/Android [^;]+; ([^;]+)\s+Build/);
+      if (androidMatch && androidMatch[1]) {
+        deviceModel = androidMatch[1].trim(); // e.g., "SM-G998B" or "Redmi Note 8"
+      } else if (userAgent.includes('iPhone')) {
+        // iOS hides the exact model (e.g. iPhone 12 vs 13) in the User Agent.
+        // The best we can do is specify the screen resolution to differentiate users.
+        deviceModel = `iPhone (${window.screen.width}x${window.screen.height})`;
+      } else if (userAgent.includes('iPad')) {
+        deviceModel = `iPad (${window.screen.width}x${window.screen.height})`;
+      } else if (userAgent.includes('Macintosh') || userAgent.includes('Mac OS X')) {
+        deviceModel = "Mac / MacBook";
+      } else if (userAgent.includes('Windows NT 10.0')) {
+        deviceModel = "Windows 10/11 PC";
+      } else if (userAgent.includes('Windows')) {
+        deviceModel = "Windows PC";
+      }
+    }
+  }
+
   try {
     // Schedule auto-removal on disconnect
     // Calling this safely (cancel any previous onDisconnect on this ref first just in case)
@@ -31,7 +77,11 @@ export async function joinExam(userName: string): Promise<string> {
     name: userName.trim(),
     joinedAt: Date.now(),
     status: "active",
-    examStarted: false
+    examStarted: false,
+    userAgent,
+    platform,
+    deviceModel,
+    ip
   });
 
   return key;

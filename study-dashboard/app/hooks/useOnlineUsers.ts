@@ -8,6 +8,10 @@ export interface OnlineUser {
   joinedAt: number;
   status: "active" | "idle";
   examStarted: boolean;
+  userAgent?: string;
+  platform?: string;
+  deviceModel?: string;
+  ip?: string;
 }
 
 /**
@@ -15,7 +19,7 @@ export interface OnlineUser {
  * and returns a live-updating array of online users.
  * Cleans up the listener on unmount.
  */
-export function useOnlineUsers(): OnlineUser[] {
+export function useOnlineUsers(includeIdle = false): OnlineUser[] {
   const [users, setUsers] = useState<OnlineUser[]>([]);
 
   useEffect(() => {
@@ -35,8 +39,12 @@ export function useOnlineUsers(): OnlineUser[] {
           joinedAt: (entry as any).joinedAt,
           status: (entry as any).status || "active",
           examStarted: (entry as any).examStarted || false,
+          userAgent: (entry as any).userAgent || "Unknown",
+          platform: (entry as any).platform || "Unknown",
+          deviceModel: (entry as any).deviceModel || "Unknown",
+          ip: (entry as any).ip || "Unknown",
         }))
-        .filter((user) => user.status === "active"); // Only show active users in the UI
+        .filter((user) => includeIdle || user.status === "active"); // Filter by active if not including idle
       setUsers(parsed);
     });
 
