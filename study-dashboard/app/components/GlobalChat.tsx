@@ -28,6 +28,8 @@ export default function GlobalChat() {
   const [userName, setUserName] = useState("");
   const [userId, setUserId] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState<{ [key: string]: string }>({});
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGreeting, setShowGreeting] = useState(false);
@@ -62,6 +64,8 @@ export default function GlobalChat() {
     const chatQuery = query(chatRef, limitToLast(50));
 
     const unsubscribeMessages = onValue(chatQuery, (snapshot) => {
+      setIsConnected(true);
+      setError(null);
       const data = snapshot.val();
       if (data) {
         const msgList: ChatMessage[] = Object.entries(data).map(([id, val]: [string, any]) => ({
@@ -75,8 +79,14 @@ export default function GlobalChat() {
       } else {
         setMessages([]);
       }
-    }, (error) => {
-      console.error("Chat listener error:", error);
+    }, (err) => {
+      console.error("Chat listener error:", err);
+      setIsConnected(true);
+      if (err.message.includes("permission_denied")) {
+        setError("Database Access Denied. Please update Firebase Rules.");
+      } else {
+        setError("Connection failed. Retrying...");
+      }
     });
 
     return () => unsubscribeMessages();
@@ -259,7 +269,20 @@ export default function GlobalChat() {
                 WebkitOverflowScrolling: 'touch',
               }}
             >
-              {messages.length === 0 ? (
+              {!isConnected ? (
+                <div className="h-full flex flex-col items-center justify-center text-slate-500">
+                  <div className="w-8 h-8 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-3" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest">Connecting Terminal...</p>
+                </div>
+              ) : error ? (
+                <div className="h-full flex flex-col items-center justify-center text-rose-500 text-center p-6">
+                  <div className="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center mb-3">
+                    <X className="w-6 h-6" />
+                  </div>
+                  <p className="text-xs font-bold">{error}</p>
+                  <p className="text-[10px] opacity-50 uppercase tracking-widest mt-2">Waiting for Permission</p>
+                </div>
+              ) : messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-500 text-center p-6">
                   <div className="w-14 h-14 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-center mb-3">
                     <MessageCircle className="w-7 h-7 text-slate-700" />
