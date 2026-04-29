@@ -339,7 +339,7 @@ export default function GlobalChat() {
                       <span className="w-1 h-1 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                       <span className="w-1 h-1 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
-                    {Object.values(isTyping)[0]} is typing...
+                    {Object.keys(isTyping).length > 1 ? "Multiple people are" : "Someone is"} typing...
                   </motion.div>
                 )}
               </AnimatePresence>
