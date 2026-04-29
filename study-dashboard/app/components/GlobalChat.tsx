@@ -153,7 +153,7 @@ export default function GlobalChat() {
 
     try {
       await push(chatRef, {
-        senderName: currentName,
+        senderName: "BCA Student", // Identity hidden
         senderId: currentId,
         text: trimmedMsg,
         timestamp: Date.now(),
@@ -280,7 +280,7 @@ export default function GlobalChat() {
                       {!isSameAsPrev && (
                         <div className={`flex items-center gap-2 mb-1 px-1 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                            {isMe ? "You" : msg.senderName}
+                            {isMe ? "You" : "BCA Student"}
                           </span>
                           <span className="text-[9px] text-slate-600 font-mono">
                             {formatTime(msg.timestamp)}
