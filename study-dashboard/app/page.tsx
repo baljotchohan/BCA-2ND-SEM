@@ -18,7 +18,7 @@ import {
   UserCheck,
   type LucideIcon,
 } from "lucide-react";
-import { joinExam, updateUserStatus, sendHeartbeat } from "./lib/presence";
+import { joinExam, updateUserStatus, sendHeartbeat, validateSession } from "./lib/presence";
 import OnlineUsers from "./components/OnlineUsers";
 
 // --- Types & Data ---
@@ -282,10 +282,25 @@ export default function StudyDashboard() {
     setGreetingData({ greeting, quote });
     // Show name modal on first visit
     const saved = localStorage.getItem("examUserName");
-    if (saved) {
-      setUserName(saved);
-      // Auto-reconnect if name exists
-      joinExam(saved).catch(console.error);
+    const savedId = localStorage.getItem("persistentUserId");
+
+    if (saved && savedId) {
+      validateSession(savedId).then((exists) => {
+        if (exists) {
+          setUserName(saved);
+          joinExam(saved).catch(console.error);
+        } else {
+          // User was removed from backend - clear local storage and show modal
+          localStorage.removeItem("examUserName");
+          localStorage.removeItem("persistentUserId");
+          localStorage.removeItem("persistentStudentId");
+          setTimeout(() => setShowNameModal(true), 600);
+        }
+      }).catch(() => {
+        // Fallback for network errors
+        setUserName(saved);
+        joinExam(saved).catch(console.error);
+      });
     } else {
       // Slight delay so the page renders first
       setTimeout(() => setShowNameModal(true), 600);

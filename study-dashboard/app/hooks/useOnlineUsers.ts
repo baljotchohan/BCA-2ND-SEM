@@ -18,6 +18,7 @@ export interface OnlineUser {
   totalStudyTime?: number;
   history?: Array<{ action: string; timestamp: number }>;
   currentActivity?: string;
+  isHidden?: boolean;
 }
 
 /**
@@ -57,14 +58,15 @@ export function useOnlineUsers(includeIdle = false): OnlineUser[] {
             action: h.action,
             timestamp: h.timestamp
           })).sort((a, b) => b.timestamp - a.timestamp) : [],
-          currentActivity: (entry as any).currentActivity || "Browsing Dashboard"
+          currentActivity: (entry as any).currentActivity || "Browsing Dashboard",
+          isHidden: (entry as any).isHidden || false
         }))
         .filter((user) => {
           const STALE_THRESHOLD = 90000; // 90 seconds
           const isStale = user.lastSeen && (Date.now() - user.lastSeen > STALE_THRESHOLD);
           
           if (includeIdle) return true; // Keep everything for admin
-          return user.status === "active" && !isStale;
+          return user.status === "active" && !isStale && !user.isHidden;
         });
       setUsers(parsed);
     });

@@ -244,6 +244,22 @@ export async function updateUserStatus(status?: "active" | "idle", examStarted?:
 }
 
 /**
+ * Checks if a user exists in the database.
+ */
+export async function validateSession(userId: string): Promise<boolean> {
+  if (!userId) return false;
+  try {
+    const { get } = await import("firebase/database");
+    const userRef = ref(db, `onlineUsers/${userId}`);
+    const snapshot = await get(userRef);
+    return snapshot.exists();
+  } catch (e) {
+    console.error("Failed to validate session:", e);
+    return false;
+  }
+}
+
+/**
  * Manually removes a user from the onlineUsers node.
  */
 export async function leaveExam(): Promise<void> {
@@ -256,5 +272,6 @@ export async function leaveExam(): Promise<void> {
   if (typeof window !== 'undefined') {
     localStorage.removeItem("persistentUserId");
     localStorage.removeItem("examUserName");
+    localStorage.removeItem("persistentStudentId");
   }
 }
