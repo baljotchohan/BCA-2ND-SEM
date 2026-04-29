@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { joinExam, updateUserStatus, sendHeartbeat, validateSession } from "./lib/presence";
 import OnlineUsers from "./components/OnlineUsers";
+import StudyLeaderboard from "./components/StudyLeaderboard";
 
 // --- Types & Data ---
 type Subject = {
@@ -166,7 +167,6 @@ const misTopics = [
 
 import Link from "next/link";
 import { Target } from "lucide-react";
-import AIFab from "./components/AIFab";
 
 function CountdownDisplay({ nextExam, accentColor }: { nextExam: Subject; accentColor: string }) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
@@ -257,6 +257,7 @@ export default function StudyDashboard() {
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   const [nextExam, setNextExam] = useState<Subject | null>(null);
+
 
   useEffect(() => {
     setMounted(true);
@@ -517,6 +518,10 @@ export default function StudyDashboard() {
         >
           {/* Online Users Panel */}
           <OnlineUsers />
+          
+          {/* Hall of Fame */}
+          <StudyLeaderboard />
+
           <div className="glass-panel rounded-3xl p-6 h-full border border-white/5">
             <div className="flex items-center gap-3 mb-8 pb-4 border-b border-white/5">
               <CalendarDays
@@ -821,7 +826,6 @@ export default function StudyDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
-      <AIFab />
 
       {/* ── Name Entry Modal ── */}
       <AnimatePresence>

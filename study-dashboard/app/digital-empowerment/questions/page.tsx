@@ -304,7 +304,7 @@ export default function DigitalEmpowermentQuestionsPage() {
         {/* Header */}
         <div className="text-center mb-12 print:mb-8">
           <div className="bg-[#eef2ff] text-[#4338ca] text-xs font-black uppercase tracking-[0.2em] py-2 px-6 rounded-full inline-block mb-8 print:border print:border-indigo-300">
-            GEMINI ADVANCED • EXAM PREPARATION
+            ANTIGRAVITY • EXAM PREPARATION
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-[#0f172a] tracking-tight mb-4 leading-tight">
             DIGITAL EMPOWERMENT
