@@ -3,7 +3,7 @@
     "onlineUsers": {
       ".read": true,
       ".write": true,
-      ".indexOn": ["name", "status", "lastSeen"],
+      ".indexOn": ["name", "status", "lastSeen", "totalStudyTime"],
       "globalChat": {
         ".validate": true
       },
@@ -18,8 +18,28 @@
         "joinedAt": {
           ".validate": "newData.isNumber()"
         },
+        "lastSeen": {
+          ".validate": "newData.isNumber()"
+        },
+        "totalStudyTime": {
+          ".validate": "newData.isNumber()"
+        },
+        "totalVisits": {
+          ".validate": "newData.isNumber()"
+        },
         "examStarted": {
           ".validate": "newData.isBoolean()"
+        },
+        "isHidden": {
+          ".validate": "newData.isBoolean()"
+        },
+        "history": {
+          "$entry": {
+            ".validate": "newData.hasChildren(['action', 'timestamp'])"
+          }
+        },
+        "$other": {
+          ".validate": "newData.isString() || newData.isNumber() || newData.isBoolean()"
         }
       }
     }

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import PageTracker from "./components/PageTracker";
 import GlobalChat from "./components/GlobalChat";
+import PresenceManager from "./components/PresenceManager";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +32,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <PageTracker />
+        <PresenceManager />
         {children}
         <GlobalChat />
       </body>

@@ -18,7 +18,7 @@ import {
   UserCheck,
   type LucideIcon,
 } from "lucide-react";
-import { joinExam, updateUserStatus, sendHeartbeat, validateSession } from "./lib/presence";
+import { joinExam, validateSession } from "./lib/presence";
 import OnlineUsers from "./components/OnlineUsers";
 import StudyLeaderboard from "./components/StudyLeaderboard";
 
@@ -289,6 +289,8 @@ export default function StudyDashboard() {
       validateSession(savedId).then((exists) => {
         if (exists) {
           setUserName(saved);
+          // joinExam is also called by PresenceManager, but we call it here
+          // so the username state is set before the greeting renders.
           joinExam(saved).catch(console.error);
         } else {
           // User was removed from backend - clear local storage and show modal
@@ -306,24 +308,8 @@ export default function StudyDashboard() {
       // Slight delay so the page renders first
       setTimeout(() => setShowNameModal(true), 600);
     }
-
-    // Visibility tracking
-    const handleVisibilityChange = () => {
-      const status = document.visibilityState === "visible" ? "active" : "idle";
-      updateUserStatus(status).catch(console.error);
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    // Heartbeat every 30 seconds
-    const heartbeatInterval = setInterval(() => {
-      sendHeartbeat().catch(() => {});
-    }, 30000);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      clearInterval(heartbeatInterval);
-    };
+    // Visibility tracking and heartbeat are now managed globally
+    // by the PresenceManager component in layout.tsx.
   }, []);
 
   useEffect(() => {
