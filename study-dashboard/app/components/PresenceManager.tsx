@@ -15,8 +15,8 @@ import { joinExam, sendHeartbeat, updateUserStatus } from "../lib/presence";
 
 export default function PresenceManager() {
   useEffect(() => {
-    const userName = localStorage.getItem("examUserName");
-    const userId   = localStorage.getItem("persistentUserId");
+    const userName = localStorage.getItem("examUserName_v2");
+    const userId   = localStorage.getItem("persistentUserId_v2");
 
     if (!userName || !userId) return; // User hasn't entered their name yet
 

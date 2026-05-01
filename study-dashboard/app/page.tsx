@@ -282,8 +282,8 @@ export default function StudyDashboard() {
     const quote = quotes[Math.floor(Math.random() * quotes.length)];
     setGreetingData({ greeting, quote });
     // Show name modal on first visit
-    const saved = localStorage.getItem("examUserName");
-    const savedId = localStorage.getItem("persistentUserId");
+    const saved = localStorage.getItem("examUserName_v2");
+    const savedId = localStorage.getItem("persistentUserId_v2");
 
     if (saved && savedId) {
       validateSession(savedId).then((exists) => {
@@ -294,9 +294,9 @@ export default function StudyDashboard() {
           joinExam(saved).catch(console.error);
         } else {
           // User was removed from backend - clear local storage and show modal
-          localStorage.removeItem("examUserName");
-          localStorage.removeItem("persistentUserId");
-          localStorage.removeItem("persistentStudentId");
+          localStorage.removeItem("examUserName_v2");
+          localStorage.removeItem("persistentUserId_v2");
+          localStorage.removeItem("persistentStudentId_v2");
           setTimeout(() => setShowNameModal(true), 600);
         }
       }).catch(() => {
@@ -339,7 +339,7 @@ export default function StudyDashboard() {
     try {
       await joinExam(trimmed);
       setUserName(trimmed);
-      localStorage.setItem("examUserName", trimmed);
+      localStorage.setItem("examUserName_v2", trimmed);
       setShowNameModal(false);
     } catch (err) {
       console.error("Failed to join exam presence:", err);

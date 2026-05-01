@@ -41,8 +41,8 @@ export default function GlobalChat() {
   // Poll localStorage for login state changes (handles async joinExam)
   useEffect(() => {
     const checkLogin = () => {
-      const storedName = localStorage.getItem("examUserName");
-      const storedId = localStorage.getItem("persistentUserId");
+      const storedName = localStorage.getItem("examUserName_v2");
+      const storedId = localStorage.getItem("persistentUserId_v2");
 
       if (storedName && storedId) {
         setUserName(storedName);
@@ -149,8 +149,8 @@ export default function GlobalChat() {
     const trimmedMsg = message.trim();
     if (!trimmedMsg || isSending) return;
 
-    const currentName = localStorage.getItem("examUserName") || userName;
-    const currentId = localStorage.getItem("persistentUserId") || userId;
+    const currentName = localStorage.getItem("examUserName_v2") || userName;
+    const currentId = localStorage.getItem("persistentUserId_v2") || userId;
 
     if (!currentName || !currentId) {
       console.error("Cannot send: not logged in");

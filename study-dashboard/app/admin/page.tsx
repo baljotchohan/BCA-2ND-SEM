@@ -417,17 +417,17 @@ export default function AdminDashboard() {
 
                           <div className="grid grid-cols-2 gap-3">
                             <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3">
-                              <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest mb-1">Session</p>
+                              <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest mb-1">Total Time</p>
                               <p className="text-sm font-bold text-white flex items-center gap-1.5">
                                 <Clock className="w-3.5 h-3.5 text-emerald-400" />
-                                {calculateDuration(user.currentSessionStart || user.joinedAt, user.status, user.lastSeen)}
+                                {formatDuration(user.totalStudyTime || 0)}
                               </p>
                             </div>
                             <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3">
-                              <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest mb-1">Total Life</p>
+                              <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest mb-1">Live Time</p>
                               <p className="text-sm font-bold text-white flex items-center gap-1.5">
                                 <Timer className="w-3.5 h-3.5 text-cyan-400" />
-                                {formatDuration(user.totalStudyTime || 0)}
+                                {effectiveStatus === "offline" ? "0m" : calculateDuration(user.currentSessionStart || user.joinedAt, user.status, user.lastSeen)}
                               </p>
                             </div>
                           </div>

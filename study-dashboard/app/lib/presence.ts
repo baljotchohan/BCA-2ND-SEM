@@ -12,7 +12,7 @@ let _lastTickAt: number | null = null; // when the current visible-tick started
 /** Returns the current user's key, or null if not registered. */
 function getKey(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("persistentUserId");
+  return localStorage.getItem("persistentUserId_v2");
 }
 
 /** True if the page is currently visible to the user. */
@@ -34,15 +34,15 @@ export async function joinExam(userName: string): Promise<string> {
   // ── Persist a stable ID across page navigations ──
   let key = "";
   if (typeof window !== "undefined") {
-    const savedId = localStorage.getItem("persistentStudentId");
+    const savedId = localStorage.getItem("persistentStudentId_v2");
     if (savedId && savedId.startsWith(`user_${safeName}`)) {
       key = savedId;
     } else {
       const suffix = Math.random().toString(36).substring(2, 6);
       key = `user_${safeName}_${suffix}`;
-      localStorage.setItem("persistentStudentId", key);
+      localStorage.setItem("persistentStudentId_v2", key);
     }
-    localStorage.setItem("persistentUserId", key);
+    localStorage.setItem("persistentUserId_v2", key);
   } else {
     key = `user_${safeName}`;
   }
@@ -116,6 +116,12 @@ export async function joinExam(userName: string): Promise<string> {
     timeZone: "Asia/Kolkata",
   });
 
+  // Preserve session start time if navigating within 2 minutes
+  const isSameSession = existingData.lastSeen && (now - existingData.lastSeen < 120000);
+  const sessionStart = isSameSession && existingData.currentSessionStart 
+    ? existingData.currentSessionStart 
+    : now;
+
   // ── UPSERT ──
   await update(userRef, {
     name: userName.trim(),
@@ -123,8 +129,10 @@ export async function joinExam(userName: string): Promise<string> {
     joinedAtReadable: new Date(firstSeen).toLocaleString("en-IN", {
       timeZone: "Asia/Kolkata",
     }),
-    currentSessionStart: now,
-    currentSessionStartReadable: readableNow,
+    currentSessionStart: sessionStart,
+    currentSessionStartReadable: new Date(sessionStart).toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+    }),
     lastSeen: now,
     lastSeenReadable: readableNow,
     firstSeen,
