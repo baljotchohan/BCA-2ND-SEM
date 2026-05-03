@@ -1,5 +1,5 @@
 "use client";
-import { Printer, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 
@@ -418,26 +418,17 @@ const topicsData = [
 ];
 
 export default function MISNotesPage() {
-  const handlePrint = () => {
-    window.print();
-  };
 
   return (
     <div className="min-h-screen bg-[#f0fdf4] text-slate-900 font-sans selection:bg-emerald-200">
       {/* Top Navigation Bar */}
-      <div className="print:hidden fixed top-0 left-0 right-0 p-4 md:p-6 flex justify-between items-center z-50 pointer-events-none">
+      <div className="print:hidden fixed top-0 left-0 right-0 p-4 md:p-6 flex z-50 pointer-events-none">
         <Link 
           href="/" 
-          className="pointer-events-auto flex items-center gap-2 bg-white px-4 py-2.5 rounded-full shadow-sm border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+          className="pointer-events-auto flex items-center justify-center bg-white w-10 h-10 rounded-full shadow-sm border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Dashboard
+          <ArrowLeft className="w-5 h-5" />
         </Link>
-        <button 
-          onClick={handlePrint}
-          className="pointer-events-auto flex items-center gap-2 bg-[#059669] text-white px-5 py-2.5 rounded-full shadow-md hover:bg-[#047857] transition-colors text-sm font-bold tracking-wide"
-        >
-          <Printer className="w-4 h-4" /> Print Notes
-        </button>
       </div>
 
       {/* Main Document */}

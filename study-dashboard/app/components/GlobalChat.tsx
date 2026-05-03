@@ -137,7 +137,7 @@ export default function GlobalChat() {
 
     const typingRef = ref(db, `${CHAT_TYPING_PATH}/${userId}`);
     if (text.trim().length > 0) {
-      set(typingRef, "Someone").catch(() => {}); // Identity hidden
+      set(typingRef, userName || "Someone").catch(() => {});
       onDisconnect(typingRef).remove().catch(() => {});
     } else {
       remove(typingRef).catch(() => {});
@@ -163,7 +163,7 @@ export default function GlobalChat() {
 
     try {
       await push(chatRef, {
-        senderName: "BCA Student", // Identity hidden
+        senderName: currentName,
         senderId: currentId,
         text: trimmedMsg,
         timestamp: Date.now(),
@@ -303,7 +303,7 @@ export default function GlobalChat() {
                       {!isSameAsPrev && (
                         <div className={`flex items-center gap-2 mb-1 px-1 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                            {isMe ? "You" : "BCA Student"}
+                            {isMe ? "You" : msg.senderName}
                           </span>
                           <span className="text-[9px] text-slate-600 font-mono">
                             {formatTime(msg.timestamp)}
@@ -339,7 +339,7 @@ export default function GlobalChat() {
                       <span className="w-1 h-1 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                       <span className="w-1 h-1 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
-                    {Object.keys(isTyping).length > 1 ? "Multiple people are" : "Someone is"} typing...
+                    {Object.keys(isTyping).length > 1 ? "Multiple people are" : `${Object.values(isTyping)[0] || "Someone"} is`} typing...
                   </motion.div>
                 )}
               </AnimatePresence>

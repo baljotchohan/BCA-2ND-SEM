@@ -12,7 +12,7 @@ import {
   Terminal,
   TrendingUp,
   X,
-  Filter,
+  Filter, Globe,
   CheckCircle2,
   Lock,
   UserCheck,
@@ -74,7 +74,7 @@ const subjects: Subject[] = [
     id: "s3",
     name: "Computer Organization",
     code: "CO-203",
-    progress: 0,
+    progress: 100,
     displayDate: "May 02",
     examDate: "2026-05-02T14:00:00",
     time: "2:00 PM",
@@ -85,14 +85,15 @@ const subjects: Subject[] = [
 
   {
     id: "s5",
-    name: "Software Engineering",
-    code: "BCA-205",
-    progress: 0,
+    name: "AI & Data Science",
+    code: "AIDS-205",
+    progress: 100,
     displayDate: "May 06",
     examDate: "2026-05-06T09:30:00",
+    time: "9:30 AM",
     color: "from-cyan-400/20 to-transparent",
     icon: BookOpen,
-    locked: true,
+    locked: false,
   },
   {
     id: "s6",
@@ -101,6 +102,7 @@ const subjects: Subject[] = [
     progress: 0,
     displayDate: "May 08",
     examDate: "2026-05-08T09:30:00",
+    time: "9:30 AM",
     color: "from-emerald-500/20 to-transparent",
     icon: Terminal,
     locked: true,
@@ -112,6 +114,7 @@ const subjects: Subject[] = [
     progress: 0,
     displayDate: "May 11",
     examDate: "2026-05-11T09:30:00",
+    time: "9:30 AM",
     color: "from-orange-500/20 to-transparent",
     icon: FileText,
     locked: true,
@@ -123,6 +126,7 @@ const subjects: Subject[] = [
     progress: 0,
     displayDate: "May 15",
     examDate: "2026-05-15T09:30:00",
+    time: "9:30 AM",
     color: "from-slate-500/20 to-transparent",
     icon: BookOpen,
     locked: true,
@@ -442,7 +446,12 @@ export default function StudyDashboard() {
           <div>
             <div className="flex items-center justify-between mb-4 md:mb-6">
               <h2 className="text-xl font-medium text-slate-200">Modules</h2>
-              <Filter className="w-4 h-4 text-slate-500 hover:text-white cursor-pointer transition-colors" />
+              <div className="flex items-center gap-3">
+                <Link href="/browser" className="flex items-center gap-2 bg-indigo-600/20 text-indigo-400 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-indigo-600/30 transition-colors border border-indigo-500/20">
+                  <Globe className="w-3.5 h-3.5" /> Web Search
+                </Link>
+                <Filter className="w-4 h-4 text-slate-500 hover:text-white cursor-pointer transition-colors" />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -596,26 +605,7 @@ export default function StudyDashboard() {
         </motion.div>
       </div>
 
-      {/* Footer / Trading Mode Toggle */}
-      <div className="fixed bottom-6 left-0 right-0 z-40 flex justify-center pointer-events-none">
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="glass-panel border border-white/10 rounded-full p-1.5 flex items-center pointer-events-auto backdrop-blur-xl shadow-2xl"
-        >
-          <button
-            onClick={() => setTradingMode(!tradingMode)}
-            className="px-5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 bg-white/10 hover:bg-white/20"
-            style={{ color: tradingMode ? "var(--trade-green)" : "var(--accent-cyan)" }}
-          >
-            {tradingMode ? (
-              <><TrendingUp className="w-4 h-4" /> Trading Mode</>
-            ) : (
-              <><BookOpen className="w-4 h-4" /> Study Mode</>
-            )}
-          </button>
-        </motion.div>
-      </div>
+
 
       {/* RESOURCE VAULT MODAL */}
       <AnimatePresence>
@@ -700,9 +690,9 @@ export default function StudyDashboard() {
                       exit={{ opacity: 0, y: -10 }}
                       className="space-y-6 pb-6"
                     >
-                      {["s1", "s2", "s3"].includes(activeSubject.id) ? (
+                      {["s1", "s2", "s3", "s5"].includes(activeSubject.id) ? (
                         <div className="pt-2">
-                          <Link href={`/${activeSubject.id === "s1" ? "mis" : activeSubject.id === "s2" ? "digital-empowerment" : "co"}/questions`}>
+                          <Link href={`/${activeSubject.id === "s1" ? "mis" : activeSubject.id === "s2" ? "digital-empowerment" : activeSubject.id === "s3" ? "co" : "ai-data-science"}/questions`}>
                             <div className="border border-emerald-500/30 rounded-2xl p-6 bg-gradient-to-br from-emerald-900/20 to-transparent hover:border-emerald-400/50 hover:from-emerald-900/30 transition-all cursor-pointer group relative overflow-hidden">
                               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-bl-full -z-10 group-hover:bg-emerald-500/20 transition-colors"></div>
                               <div className="flex items-center justify-between mb-4">
@@ -748,9 +738,9 @@ export default function StudyDashboard() {
                       exit={{ opacity: 0, y: -10 }}
                       className="space-y-4 pb-6"
                     >
-                      {["s1", "s2", "s3"].includes(activeSubject.id) ? (
+                      {["s1", "s2", "s3", "s5"].includes(activeSubject.id) ? (
                         <div className="pt-2">
-                          <Link href={`/${activeSubject.id === "s1" ? "mis" : activeSubject.id === "s2" ? "digital-empowerment" : "co"}/notes`}>
+                          <Link href={`/${activeSubject.id === "s1" ? "mis" : activeSubject.id === "s2" ? "digital-empowerment" : activeSubject.id === "s3" ? "co" : "ai-data-science"}/notes`}>
                             <div className="border border-emerald-500/30 rounded-2xl p-6 bg-gradient-to-br from-emerald-900/20 to-transparent hover:border-emerald-400/50 hover:from-emerald-900/30 transition-all cursor-pointer group relative overflow-hidden">
                               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-bl-full -z-10 group-hover:bg-emerald-500/20 transition-colors"></div>
                               <div className="flex items-center justify-between mb-4">

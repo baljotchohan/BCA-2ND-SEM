@@ -2,10 +2,9 @@
 import { ArrowLeft, BookOpen, ScrollText } from "lucide-react";
 import Link from "next/link";
 import React from "react";
-import { questionsData } from "./data";
+import { data } from "./data";
 
-export default function COQuestionsPage() {
-
+export default function AIDSQuestionsPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans selection:bg-indigo-200">
@@ -18,10 +17,10 @@ export default function COQuestionsPage() {
       <main className="max-w-5xl mx-auto bg-white min-h-screen shadow-[0_0_40px_rgba(0,0,0,0.05)] print:shadow-none print:w-full print:max-w-none px-6 py-20 md:px-12 md:py-24 mt-0 md:mt-8 print:mt-0 print:p-0">
         <div className="text-center mb-16 print:mb-8">
           <div className="bg-[#eef2ff] text-[#4338ca] text-xs font-black uppercase tracking-[0.2em] py-2 px-6 rounded-full inline-block mb-6 print:border print:border-indigo-300">
-            PUNJAB UNIVERSITY FORMAT • NBCA201
+            PUNJAB UNIVERSITY FORMAT • NBCA-202 / AIDS-205
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-[#0f172a] tracking-tight mb-4 leading-tight">
-            COMPUTER ORGANIZATION
+            AI & DATA SCIENCE
           </h1>
           <h2 className="text-xl md:text-2xl text-[#4f46e5] font-medium italic mb-6 flex items-center justify-center gap-2">
             <ScrollText className="w-6 h-6" /> Complete Question Bank (Solved)
@@ -30,7 +29,7 @@ export default function COQuestionsPage() {
 
         <hr className="border-t-2 border-slate-100 mb-12 print:mb-8" />
 
-        {questionsData.map((unit, idx) => (
+        {data.map((unit, idx) => (
           <section key={idx} className="mb-16 print:break-after-page">
             <UnitHeader title={unit.unit} />
             {unit.questions.map((q, qIdx) => (
@@ -101,7 +100,7 @@ function FormattedContent({ text }: { text: string }) {
       .replace(/`([^`]+)`/g, '<code class="bg-slate-100 px-1 py-0.5 rounded text-indigo-600 font-mono text-xs">$1</code>');
   };
 
-  const segments = text.split('```');
+  const segments = text.split('\`\`\`');
   
   return (
     <div className="space-y-3 text-sm text-slate-800 leading-relaxed">
