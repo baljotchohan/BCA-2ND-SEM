@@ -24,11 +24,12 @@ import {
   Zap,
   User,
   ExternalLink,
-  MessageSquare
+  MessageSquare,
+  Archive
 } from "lucide-react";
 import React, { Fragment } from "react";
 import Link from "next/link";
-import { ref, remove, update } from "firebase/database";
+import { ref, remove, update, get, set } from "firebase/database";
 import { db } from "../lib/firebase";
 import { useOnlineUsers, OnlineUser } from "../hooks/useOnlineUsers";
 
@@ -79,6 +80,36 @@ export default function AdminDashboard() {
     if (confirm("Are you sure you want to clear ALL global chat messages?")) {
       await remove(ref(db, "onlineUsers/globalChat/messages"));
       await remove(ref(db, "onlineUsers/globalChat/typing"));
+    }
+  };
+
+  const archiveSession = async () => {
+    if (confirm("Archive current live session to memory? This will save all current data and start a fresh session.")) {
+      try {
+        const usersRef = ref(db, "onlineUsers");
+        const snapshot = await get(usersRef);
+        
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const timestamp = Date.now();
+          const archiveRef = ref(db, `archives/session_${timestamp}`);
+          
+          await set(archiveRef, {
+            timestamp,
+            date: new Date().toISOString(),
+            data: data
+          });
+          
+          await remove(usersRef);
+          setSelectedUserId(null);
+          alert("Session successfully archived! Live database is now clean.");
+        } else {
+          alert("No data to archive.");
+        }
+      } catch (err) {
+        console.error("Archive failed:", err);
+        alert("Failed to archive data. Check Firebase permissions.");
+      }
     }
   };
 
@@ -241,14 +272,20 @@ export default function AdminDashboard() {
             <History className="w-5 h-5" /> System Logs
           </button>
           <button 
+            onClick={archiveSession}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300 transition-all mt-4 border border-dashed border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.1)]"
+          >
+            <Archive className="w-5 h-5" /> Archive to Memory
+          </button>
+          <button 
             onClick={clearAllUsers}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-500/70 hover:bg-red-500/10 hover:text-red-400 transition-all mt-4 border border-dashed border-red-500/20"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-500/70 hover:bg-red-500/10 hover:text-red-400 transition-all border border-dashed border-red-500/20 mt-2"
           >
             <Trash2 className="w-5 h-5" /> Clear All Data
           </button>
           <button 
             onClick={clearGlobalChat}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-orange-500/70 hover:bg-orange-500/10 hover:text-orange-400 transition-all border border-dashed border-orange-500/20"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-orange-500/70 hover:bg-orange-500/10 hover:text-orange-400 transition-all border border-dashed border-orange-500/20 mt-2"
           >
             <MessageSquare className="w-5 h-5" /> Clear Global Chat
           </button>
