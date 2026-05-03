@@ -26,12 +26,34 @@ export default function BrowserPage() {
     setHasSearched(true);
     
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-      const data = await res.json();
-      if (data.results) {
-        setResults(data.results);
-        setAiOverview(data.aiOverview || "");
-        setSource(data.source || "DuckDuckGo");
+      // Direct client-side Wikipedia API call to avoid backend API routes needed for static export
+      const wikiRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`, { cache: 'no-store' });
+      const wikiData = await wikiRes.json();
+      
+      let newAiOverview = "";
+      try {
+        const wikiSummaryRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&titles=${encodeURIComponent(query)}&format=json&origin=*`, { cache: 'no-store' });
+        const wikiSummaryData = await wikiSummaryRes.json();
+        const pages = wikiSummaryData?.query?.pages;
+        if (pages) {
+          const firstPageId = Object.keys(pages)[0];
+          if (firstPageId !== "-1" && pages[firstPageId].extract) {
+             newAiOverview = pages[firstPageId].extract.substring(0, 500);
+             if (pages[firstPageId].extract.length > 500) newAiOverview += "...";
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      if (wikiData.query && wikiData.query.search) {
+        setResults(wikiData.query.search.map((r: any) => ({
+          title: r.title,
+          url: `https://en.wikipedia.org/wiki/${encodeURIComponent(r.title.replace(/ /g, '_'))}`,
+          snippet: r.snippet.replace(/<[^>]+>/g, "").trim()
+        })));
+        setAiOverview(newAiOverview);
+        setSource("Wikipedia");
       } else {
         setResults([]);
         setAiOverview("");
@@ -127,7 +149,7 @@ export default function BrowserPage() {
               </div>
             )}
             <iframe 
-              src={`/api/proxy?url=${encodeURIComponent(activeUrl)}`} 
+              src={`https://corsproxy.io/?url=${encodeURIComponent(activeUrl)}`} 
               className="w-full h-full border-none bg-white"
               sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
               onLoad={() => setIframeLoading(false)}
