@@ -34,6 +34,15 @@ export default function GlobalChat() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGreeting, setShowGreeting] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [newMessagePopup, setNewMessagePopup] = useState<{ senderName: string; text: string } | null>(null);
+  
+  const userIdRef = useRef(userId);
+  const isOpenRef = useRef(isOpen);
+
+  useEffect(() => {
+    userIdRef.current = userId;
+    isOpenRef.current = isOpen;
+  }, [userId, isOpen]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -75,7 +84,22 @@ export default function GlobalChat() {
           text: val.text || "",
           timestamp: val.timestamp || 0,
         }));
-        setMessages(msgList.sort((a, b) => a.timestamp - b.timestamp));
+        const sortedMsgList = msgList.sort((a, b) => a.timestamp - b.timestamp);
+        
+        setMessages(prev => {
+          if (prev.length > 0 && sortedMsgList.length > 0) {
+            const lastPrev = prev[prev.length - 1];
+            const lastNew = sortedMsgList[sortedMsgList.length - 1];
+            
+            if (lastNew.id !== lastPrev.id && lastNew.senderId !== userIdRef.current && !isOpenRef.current) {
+              setNewMessagePopup({ senderName: lastNew.senderName, text: lastNew.text });
+              setTimeout(() => {
+                setNewMessagePopup(null);
+              }, 4000);
+            }
+          }
+          return sortedMsgList;
+        });
       } else {
         setMessages([]);
       }
@@ -206,9 +230,34 @@ export default function GlobalChat() {
 
   return (
     <div className="fixed bottom-4 right-4 z-[70] flex flex-col items-end" style={{ maxWidth: 'calc(100vw - 32px)' }}>
+      {/* New Message Pop-up */}
+      <AnimatePresence>
+        {newMessagePopup && !isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, x: 20 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.8, x: 20 }}
+            onClick={() => {
+              setIsOpen(true);
+              setNewMessagePopup(null);
+            }}
+            className="mb-3 px-4 py-3 bg-[#0c0c0c]/95 backdrop-blur-xl text-white text-xs font-bold rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.5)] border border-indigo-500/30 flex flex-col gap-1.5 cursor-pointer hover:border-indigo-500/60 transition-colors"
+            style={{ maxWidth: 'min(300px, calc(100vw - 32px))' }}
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(129,140,248,0.6)]" />
+              <span className="text-indigo-300 truncate">New from {newMessagePopup.senderName}</span>
+            </div>
+            <p className="text-slate-300 font-normal truncate opacity-90">
+              {newMessagePopup.text}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Greeting Pop-up */}
       <AnimatePresence>
-        {showGreeting && !isOpen && (
+        {showGreeting && !isOpen && !newMessagePopup && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8, x: 20 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
