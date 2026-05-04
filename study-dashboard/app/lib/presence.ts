@@ -49,11 +49,6 @@ export async function joinExam(userName: string): Promise<string> {
 
   const userRef = ref(db, `onlineUsers/${key}`);
 
-  // ── Non-blocking IP fetch ──
-  fetch("https://api.ipify.org?format=json")
-    .then((r) => r.json())
-    .then((d) => { if (d.ip) update(userRef, { ip: d.ip }); })
-    .catch(() => {});
 
   // ── Device info ──
   const userAgent =
@@ -88,20 +83,7 @@ export async function joinExam(userName: string): Promise<string> {
     }
   }
 
-  // ── onDisconnect: mark offline with a plain timestamp ──
-  // NOTE: serverTimestamp() cannot be used here because the Firebase
-  // validate rule on 'lastSeen' uses isNumber(), and serverTimestamp()
-  // is a special sentinel object — not a number — so it fails validation.
-  // Date.now() is a plain number and passes correctly.
-  try {
-    await onDisconnect(userRef).cancel();
-    await onDisconnect(userRef).update({
-      status: "offline",
-      lastSeen: Date.now(),
-    });
-  } catch (e) {
-    console.warn("onDisconnect setup failed:", e);
-  }
+
 
   // ── Read existing data to preserve history / visits ──
   const { get } = await import("firebase/database");
@@ -145,6 +127,27 @@ export async function joinExam(userName: string): Promise<string> {
     deviceModel,
     ip: existingData.ip || "Unknown",
   });
+
+  // ── onDisconnect: mark offline with a plain timestamp ──
+  // NOTE: serverTimestamp() cannot be used here because the Firebase
+  // validate rule on 'lastSeen' uses isNumber(), and serverTimestamp()
+  // is a special sentinel object — not a number — so it fails validation.
+  // Date.now() is a plain number and passes correctly.
+  try {
+    await onDisconnect(userRef).cancel();
+    await onDisconnect(userRef).update({
+      status: "offline",
+      lastSeen: Date.now(),
+    });
+  } catch (e) {
+    console.warn("onDisconnect setup failed:", e);
+  }
+
+  // ── Non-blocking IP fetch ──
+  fetch("https://api.ipify.org?format=json")
+    .then((r) => r.json())
+    .then((d) => { if (d.ip) update(userRef, { ip: d.ip }); })
+    .catch(() => {});
 
   // ── Log visit in history ──
   const { push } = await import("firebase/database");

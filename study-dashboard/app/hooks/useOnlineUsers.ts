@@ -89,7 +89,32 @@ export function useOnlineUsers(includeAll = false): OnlineUser[] {
           parsed.push(user);
         }
 
-        setRawUsers(parsed);
+        // Deduplicate parsed users by name
+        const deduplicatedMap = new Map<string, OnlineUser>();
+        for (const user of parsed) {
+          const existing = deduplicatedMap.get(user.name);
+          if (!existing) {
+            deduplicatedMap.set(user.name, user);
+          } else {
+            // Merge duplicate sessions for the same user name
+            const merged: OnlineUser = {
+              ...existing,
+              // Keep the most recent lastSeen
+              lastSeen: Math.max(existing.lastSeen || 0, user.lastSeen || 0),
+              // Keep the max study time
+              totalStudyTime: Math.max(existing.totalStudyTime || 0, user.totalStudyTime || 0),
+              // Keep the most recent status if this one is newer
+              status: (user.lastSeen || 0) > (existing.lastSeen || 0) ? user.status : existing.status,
+              // Combine history if needed or just keep the longest
+              history: (user.history?.length || 0) > (existing.history?.length || 0) ? user.history : existing.history,
+              // Take max visits
+              totalVisits: Math.max(existing.totalVisits || 1, user.totalVisits || 1),
+            };
+            deduplicatedMap.set(user.name, merged);
+          }
+        }
+
+        setRawUsers(Array.from(deduplicatedMap.values()));
       },
       (error) => {
         console.error("Error listening to online users:", error);
