@@ -99,13 +99,13 @@ const subjects: Subject[] = [
     id: "s6",
     name: "OOPs using C++",
     code: "CPP-206",
-    progress: 0,
+    progress: 100,
     displayDate: "May 08",
     examDate: "2026-05-08T14:00:00",
     time: "2:00 PM - 5:00 PM",
     color: "from-emerald-500/20 to-transparent",
     icon: Terminal,
-    locked: true,
+    locked: false,
   },
   {
     id: "s7",
@@ -690,9 +690,9 @@ export default function StudyDashboard() {
                       exit={{ opacity: 0, y: -10 }}
                       className="space-y-6 pb-6"
                     >
-                      {["s1", "s2", "s3", "s5"].includes(activeSubject.id) ? (
+                      {["s1", "s2", "s3", "s5", "s6"].includes(activeSubject.id) ? (
                         <div className="pt-2">
-                          <Link href={`/${activeSubject.id === "s1" ? "mis" : activeSubject.id === "s2" ? "digital-empowerment" : activeSubject.id === "s3" ? "co" : "ai-data-science"}/questions`}>
+                          <Link href={`/${activeSubject.id === "s1" ? "mis" : activeSubject.id === "s2" ? "digital-empowerment" : activeSubject.id === "s3" ? "co" : activeSubject.id === "s5" ? "ai-data-science" : "cpp"}/questions`}>
                             <div className="border border-emerald-500/30 rounded-2xl p-6 bg-gradient-to-br from-emerald-900/20 to-transparent hover:border-emerald-400/50 hover:from-emerald-900/30 transition-all cursor-pointer group relative overflow-hidden">
                               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-bl-full -z-10 group-hover:bg-emerald-500/20 transition-colors"></div>
                               <div className="flex items-center justify-between mb-4">
@@ -738,9 +738,9 @@ export default function StudyDashboard() {
                       exit={{ opacity: 0, y: -10 }}
                       className="space-y-4 pb-6"
                     >
-                      {["s1", "s2", "s3", "s5"].includes(activeSubject.id) ? (
+                      {["s1", "s2", "s3", "s5", "s6"].includes(activeSubject.id) ? (
                         <div className="pt-2">
-                          <Link href={`/${activeSubject.id === "s1" ? "mis" : activeSubject.id === "s2" ? "digital-empowerment" : activeSubject.id === "s3" ? "co" : "ai-data-science"}/notes`}>
+                          <Link href={`/${activeSubject.id === "s1" ? "mis" : activeSubject.id === "s2" ? "digital-empowerment" : activeSubject.id === "s3" ? "co" : activeSubject.id === "s5" ? "ai-data-science" : "cpp"}/notes`}>
                             <div className="border border-emerald-500/30 rounded-2xl p-6 bg-gradient-to-br from-emerald-900/20 to-transparent hover:border-emerald-400/50 hover:from-emerald-900/30 transition-all cursor-pointer group relative overflow-hidden">
                               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-bl-full -z-10 group-hover:bg-emerald-500/20 transition-colors"></div>
                               <div className="flex items-center justify-between mb-4">
