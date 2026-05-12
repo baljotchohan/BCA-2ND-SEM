@@ -25,11 +25,12 @@ import {
   User,
   ExternalLink,
   MessageSquare,
-  Archive
+  Archive,
+  Star
 } from "lucide-react";
 import React, { Fragment } from "react";
 import Link from "next/link";
-import { ref, remove, update, get, set } from "firebase/database";
+import { ref, remove, update, get, set, onValue } from "firebase/database";
 import { db } from "../lib/firebase";
 import { useOnlineUsers, OnlineUser } from "../hooks/useOnlineUsers";
 
@@ -41,12 +42,30 @@ export default function AdminDashboard() {
   const users = useOnlineUsers(true); // true to include idle/offline users
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'feedback'>('dashboard');
+  const [feedbacks, setFeedbacks] = useState<any[]>([]);
 
   // Force re-render every 5 seconds to update "time ago" and "stale" status
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 5000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const feedbackRef = ref(db, 'semester_feedback');
+      const unsubscribe = onValue(feedbackRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const list = Object.values(data).sort((a: any, b: any) => b.timestamp - a.timestamp);
+          setFeedbacks(list);
+        } else {
+          setFeedbacks([]);
+        }
+      });
+      return () => unsubscribe();
+    }
+  }, [isAuthenticated]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -262,8 +281,24 @@ export default function AdminDashboard() {
         </div>
 
         <nav className="flex flex-col gap-2">
-          <button className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-medium shadow-sm transition-all">
-            <LayoutDashboard className="w-5 h-5 text-emerald-400" /> Dashboard
+          <button 
+            onClick={() => setActiveTab('dashboard')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
+              activeTab === 'dashboard' ? "bg-white/5 border border-white/10 text-white shadow-sm" : "text-slate-400 hover:bg-white/5 hover:text-white"
+            }`}>
+            <LayoutDashboard className={`w-5 h-5 ${activeTab === 'dashboard' ? 'text-emerald-400' : ''}`} /> Dashboard
+          </button>
+          <button 
+            onClick={() => setActiveTab('feedback')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
+              activeTab === 'feedback' ? "bg-white/5 border border-white/10 text-white shadow-sm" : "text-slate-400 hover:bg-white/5 hover:text-white"
+            }`}>
+            <Star className={`w-5 h-5 ${activeTab === 'feedback' ? 'text-yellow-400' : ''}`} /> Feedbacks
+            {feedbacks.length > 0 && (
+              <span className="ml-auto bg-yellow-500/20 text-yellow-500 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                {feedbacks.length}
+              </span>
+            )}
           </button>
           <button className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all">
             <Users className="w-5 h-5" /> All Students
@@ -342,8 +377,10 @@ export default function AdminDashboard() {
         {/* Dashboard Content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
           <div className="max-w-6xl mx-auto space-y-8">
-            {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {activeTab === 'dashboard' ? (
+              <>
+                {/* Stats Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 { label: "Active Now", value: stats.active, icon: Activity, color: "text-emerald-400", bg: "bg-emerald-400/10" },
                 { label: "Total Students", value: stats.totalUsers, icon: Users, color: "text-blue-400", bg: "bg-blue-400/10" },
@@ -494,6 +531,106 @@ export default function AdminDashboard() {
                 )}
               </div>
             </div>
+              </>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    <Star className="w-6 h-6 text-yellow-400" /> Student Feedbacks
+                  </h3>
+                  <div className="flex gap-4">
+                    <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3">
+                      <span className="text-xs text-slate-400 uppercase font-bold tracking-wider">Avg Rating</span>
+                      <span className="text-lg font-bold text-white flex items-center gap-1">
+                        {(feedbacks.reduce((acc, f) => acc + (f.rating || 0), 0) / (feedbacks.length || 1)).toFixed(1)}
+                        <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <AnimatePresence>
+                    {feedbacks.map((feedback, i) => (
+                      <motion.div
+                        key={feedback.userId || i}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="glass-panel border border-white/5 rounded-[2rem] p-6 hover:border-white/10 transition-all"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 flex items-center justify-center font-bold text-yellow-400 uppercase">
+                              {(feedback.userName || "?").charAt(0)}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-white">{feedback.userName || "Anonymous"}</h4>
+                              <p className="text-[10px] text-slate-500 font-mono">
+                                {new Date(feedback.timestamp).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star 
+                                key={star} 
+                                className={`w-4 h-4 ${star <= (feedback.rating || 0) ? "text-yellow-400 fill-yellow-400" : "text-slate-700"}`} 
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        {feedback.message && (
+                          <div className="mb-4 p-4 rounded-xl bg-white/5 border border-white/5">
+                            <p className="text-sm text-slate-300 italic">"{feedback.message}"</p>
+                          </div>
+                        )}
+
+                        <div className="space-y-3">
+                          {feedback.bestParts && feedback.bestParts.length > 0 && (
+                            <div>
+                              <p className="text-[10px] text-emerald-400 uppercase font-bold tracking-widest mb-1.5 flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> What they loved
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {feedback.bestParts.map((part: string, idx: number) => (
+                                  <span key={idx} className="px-2 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-[10px] font-bold">
+                                    {part}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {feedback.improvements && feedback.improvements.length > 0 && (
+                            <div>
+                              <p className="text-[10px] text-amber-400 uppercase font-bold tracking-widest mb-1.5 flex items-center gap-1.5 mt-3">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Areas for improvement
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {feedback.improvements.map((imp: string, idx: number) => (
+                                  <span key={idx} className="px-2 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md text-[10px] font-bold">
+                                    {imp}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                    {feedbacks.length === 0 && (
+                      <div className="col-span-full py-20 text-center space-y-4">
+                        <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto">
+                          <MessageSquare className="w-8 h-8 text-slate-600" />
+                        </div>
+                        <p className="text-slate-500 font-medium">No feedback submitted yet</p>
+                      </div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>
