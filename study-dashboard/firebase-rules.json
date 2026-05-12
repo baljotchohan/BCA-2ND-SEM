@@ -46,6 +46,10 @@
     "archives": {
       ".read": true,
       ".write": true
+    },
+    "semester_feedback": {
+      ".read": true,
+      ".write": true
     }
   }
 }

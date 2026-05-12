@@ -4,6 +4,7 @@ import "./globals.css";
 import PageTracker from "./components/PageTracker";
 import GlobalChat from "./components/GlobalChat";
 import PresenceManager from "./components/PresenceManager";
+import EndSemesterFeedback from "./components/EndSemesterFeedback";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,6 +36,7 @@ export default function RootLayout({
         <PresenceManager />
         {children}
         <GlobalChat />
+        <EndSemesterFeedback />
       </body>
     </html>
   );
