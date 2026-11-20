@@ -1,7 +1,8 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
@@ -12,28 +13,22 @@ import {
   Terminal,
   TrendingUp,
   X,
-  Filter, Globe,
   CheckCircle2,
   Lock,
-  UserCheck,
+  Target,
   type LucideIcon,
 } from "lucide-react";
-import { joinExam, validateSession } from "./lib/presence";
-import OnlineUsers from "./components/OnlineUsers";
-import StudyLeaderboard from "./components/StudyLeaderboard";
 
 // --- Types & Data ---
 type Subject = {
   id: string;
   name: string;
   code: string;
-  progress: number;
   displayDate: string;
   examDate: string;
   time?: string;
   color: string;
   icon: LucideIcon;
-  locked: boolean;
   syllabus?: {
     imageUrl?: string;
   };
@@ -44,13 +39,11 @@ const subjects: Subject[] = [
     id: "s1",
     name: "Management Info Systems",
     code: "MIS-201",
-    progress: 100,
     displayDate: "April 27",
     examDate: "2026-04-27T09:30:00",
     time: "9:30 AM",
     color: "from-cyan-500/20 to-transparent",
     icon: TrendingUp,
-    locked: false,
     syllabus: {
       imageUrl: "/MIS.jpeg"
     }
@@ -59,13 +52,11 @@ const subjects: Subject[] = [
     id: "s2",
     name: "Digital Empowerment",
     code: "DE-202",
-    progress: 100,
     displayDate: "April 30",
     examDate: "2026-04-30T09:30:00",
     time: "9:30 AM",
     color: "from-blue-500/20 to-transparent",
     icon: BookOpen,
-    locked: false,
     syllabus: {
       imageUrl: "/Digital_Empowerment.jpeg"
     }
@@ -74,103 +65,54 @@ const subjects: Subject[] = [
     id: "s3",
     name: "Computer Organization",
     code: "CO-203",
-    progress: 100,
     displayDate: "May 02",
     examDate: "2026-05-02T14:00:00",
     time: "2:00 PM",
     color: "from-purple-500/20 to-transparent",
     icon: Terminal,
-    locked: false,
   },
 
   {
     id: "s5",
     name: "AI & Data Science",
     code: "AIDS-205",
-    progress: 100,
     displayDate: "May 06",
     examDate: "2026-05-06T14:00:00",
     time: "2:00 PM - 5:00 PM",
     color: "from-cyan-400/20 to-transparent",
     icon: BookOpen,
-    locked: false,
   },
   {
     id: "s6",
     name: "OOPs using C++",
     code: "CPP-206",
-    progress: 100,
     displayDate: "May 08",
     examDate: "2026-05-08T14:00:00",
     time: "2:00 PM - 5:00 PM",
     color: "from-emerald-500/20 to-transparent",
     icon: Terminal,
-    locked: false,
   },
   {
     id: "s7",
     name: "Punjabi",
     code: "PBI-207",
-    progress: 100,
     displayDate: "May 11",
     examDate: "2026-05-11T09:30:00",
     time: "9:30 AM",
     color: "from-orange-500/20 to-transparent",
     icon: FileText,
-    locked: false,
   },
   {
     id: "s8",
     name: "English",
     code: "ENG-208",
-    progress: 100,
     displayDate: "May 15",
     examDate: "2026-05-15T09:30:00",
     time: "9:30 AM",
     color: "from-slate-500/20 to-transparent",
     icon: BookOpen,
-    locked: false,
   },
 ];
-
-const misQuestions = [
-  {
-    category: "Section A (Short Definitions & Concepts)",
-    items: [
-      "Define MIS, DSS, TPS, and ERP with examples.",
-      "Distinguish between Data and Information. What are the dimensions of high-quality information?",
-      "Define the characteristics of a system (Organization, Interaction, Interdependence, Integration, Central Objective).",
-      "What is the difference between an Open System and a Closed System? Give organizational examples.",
-      "List and explain the four types of system maintenance (Corrective, Adaptive, Perfective, Preventive)."
-    ]
-  },
-  {
-    category: "Section B & C (Long Answers & Core Models)",
-    items: [
-      "Explain Herbert Simon's Model of Decision-Making. Draw the Intelligence-Design-Choice flow and explain 'Bounded Rationality'.",
-      "Detail the phases of the System Development Life Cycle (SDLC). Emphasize the importance of Requirement Analysis and the SRS document.",
-      "Discuss the structural hierarchy of MIS across management levels (TPS for Operational, DSS for Middle Management, EIS for Executives).",
-      "Explain the strict rules for constructing Data Flow Diagrams (DFDs) and the difference between Context Diagram (Level 0) and subsequent levels.",
-      "What is the strategic role of a Systems Analyst in bridging the gap between business users and technologists?",
-      "Discuss the functional information needs of Marketing (Marketing MIS) and Human Resources (HRIS).",
-      "What is Enterprise Resource Planning (ERP)? Discuss its benefits over conventional systems and its implementation lifecycle.",
-      "How does a Data Warehouse differ from an Operational Database (TPS)? Explain its role alongside Data Mining in Business Intelligence.",
-      "Explain Michael Porter's Competitive Forces Model in the context of achieving strategic advantage through Information Systems."
-    ]
-  }
-];
-
-const misTopics = [
-  { title: "Theoretical Foundations", desc: "System characteristics (Organization, Interaction, Interdependence, Integration, Central Objective). Open vs Closed, Physical vs Abstract systems." },
-  { title: "Structural Hierarchy of MIS", desc: "Transaction Processing Systems (TPS) for operational staff, Decision Support Systems (DSS) for middle management, and Executive Information Systems (EIS) for top executives." },
-  { title: "Simon's Decision-Making Model", desc: "Intelligence Phase (problem identification), Design Phase (developing alternatives), Choice Phase (selecting solution), and the concept of 'Bounded Rationality' (satisficing)." },
-  { title: "System Development Life Cycle (SDLC)", desc: "Phases: Requirement Analysis (SRS), System Design (HLD/LLD), Coding, Testing, and Maintenance (Corrective, Adaptive, Perfective, Preventive)." },
-  { title: "Functional MIS & ERP", desc: "Integration of Marketing, HRIS, FIS, and Production systems. Enterprise Resource Planning (ERP) for a unified view of organizational processes." },
-  { title: "Advanced Topics", desc: "Data Warehousing vs Operational Databases, Data Mining, E-commerce models (B2B, B2C), GDSS, and Expert Systems." }
-];
-
-import Link from "next/link";
-import { Target } from "lucide-react";
 
 function CountdownDisplay({ nextExam, accentColor }: { nextExam: Subject; accentColor: string }) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
@@ -244,141 +186,18 @@ function CountdownDisplay({ nextExam, accentColor }: { nextExam: Subject; accent
 }
 
 export default function StudyDashboard() {
-  const [tradingMode, setTradingMode] = useState(false);
   const [activeSubject, setActiveSubject] = useState<Subject | null>(null);
   const [activeTab, setActiveTab] = useState("questions");
-  const [mounted, setMounted] = useState(false);
-  const [upcomingExams, setUpcomingExams] = useState<Subject[]>([]);
-  const [greetingData, setGreetingData] = useState({ greeting: "Welcome", quote: "Ready to crush your exams today?" });
-
-  // --- Presence state ---
-  const [showNameModal, setShowNameModal] = useState(false);
-  const [userName, setUserName] = useState("");
-  const [nameInput, setNameInput] = useState("");
-  const [isJoining, setIsJoining] = useState(false);
-  const [nameAttempts, setNameAttempts] = useState(0);
-  const [nameError, setNameError] = useState("");
-  const nameInputRef = useRef<HTMLInputElement>(null);
-
-  const [nextExam, setNextExam] = useState<Subject | null>(null);
-
-
+  const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
-    setMounted(true);
-    
-    // Generate greeting based on time of day
-    const hour = new Date().getHours();
-    let greeting = "Good evening";
-    if (hour >= 5 && hour < 12) greeting = "Good morning";
-    else if (hour >= 12 && hour < 17) greeting = "Good afternoon";
-    else if (hour >= 17 && hour < 22) greeting = "Good evening";
-    else greeting = "Late night studying";
-
-    const quotes = [
-      "Ready to crush your exams today?",
-      "Consistency is the key to mastering your syllabus.",
-      "Let's make today a highly productive one.",
-      "Every session brings you closer to top grades.",
-      "Focus, learn, and conquer your exams.",
-      "Your future self will thank you for today's effort.",
-      "Step by step, you're building your success."
-    ];
-    const quote = quotes[Math.floor(Math.random() * quotes.length)];
-    setGreetingData({ greeting, quote });
-    // Show name modal on first visit
-    const saved = localStorage.getItem("examUserName_v2");
-    const savedId = localStorage.getItem("persistentUserId_v2");
-
-    if (saved && savedId) {
-      validateSession(savedId).then((exists) => {
-        if (exists) {
-          setUserName(saved);
-          // joinExam is also called by PresenceManager, but we call it here
-          // so the username state is set before the greeting renders.
-          joinExam(saved).catch(console.error);
-        } else {
-          // User was removed from backend - clear local storage and show modal
-          localStorage.removeItem("examUserName_v2");
-          localStorage.removeItem("persistentUserId_v2");
-          localStorage.removeItem("persistentStudentId_v2");
-          setTimeout(() => setShowNameModal(true), 600);
-        }
-      }).catch(() => {
-        // Fallback for network errors
-        setUserName(saved);
-        joinExam(saved).catch(console.error);
-      });
-    } else {
-      // Slight delay so the page renders first
-      setTimeout(() => setShowNameModal(true), 600);
-    }
-    // Visibility tracking and heartbeat are now managed globally
-    // by the PresenceManager component in layout.tsx.
+    setNow(Date.now());
   }, []);
 
-  useEffect(() => {
-    if (showNameModal) {
-      setTimeout(() => nameInputRef.current?.focus(), 100);
-    }
-  }, [showNameModal]);
-
-  const handleJoinExam = async () => {
-    const trimmed = nameInput.trim();
-    if (!trimmed) return;
-
-    const alphaCount = (trimmed.match(/[a-zA-Z]/g) || []).length;
-    if (alphaCount < 4) {
-      setNameError("Name must contain at least 4 letters.");
-      return;
-    }
-
-    if (nameAttempts === 0) {
-      setNameError("Incorrect name, please re-enter your correct name.");
-      setNameAttempts(1);
-      return;
-    }
-
-    setNameError("");
-    setIsJoining(true);
-    try {
-      await joinExam(trimmed);
-      setUserName(trimmed);
-      localStorage.setItem("examUserName_v2", trimmed);
-      setShowNameModal(false);
-    } catch (err) {
-      console.error("Failed to join exam presence:", err);
-    } finally {
-      setIsJoining(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!mounted) return;
-
-    // Include all exams, marking those in the past
-    const nowTime = new Date().getTime();
-    const sortedExams = [...subjects].sort(
-      (a, b) => new Date(a.examDate).getTime() - new Date(b.examDate).getTime()
-    );
-
-    setUpcomingExams(sortedExams);
-
-    const futureExams = sortedExams.filter(
-      (s) => new Date(s.examDate).getTime() > nowTime
-    );
-    if (futureExams.length > 0) {
-      setNextExam(futureExams[0]);
-    } else {
-      setNextExam(null);
-    }
-  }, [mounted]);
-
-  const accentColor = tradingMode ? "var(--trade-green)" : "var(--accent-cyan)";
-  const accentGlow = tradingMode
-    ? "rgba(34, 197, 94, 0.5)"
-    : "var(--accent-cyan-glow)";
-
-  if (!mounted) return null; // Prevent hydration errors
+  const nextExam = now === null ? undefined : subjects.find(
+    (subject) => Date.parse(subject.examDate) > now,
+  );
+  const accentColor = "var(--accent-cyan)";
+  const accentGlow = "var(--accent-cyan-glow)";
 
   return (
     <div className="min-h-screen bg-[#050505] text-[#f8fafc] font-sans selection:bg-cyan-500/30 overflow-hidden relative pb-20 md:pb-0">
@@ -400,36 +219,20 @@ export default function StudyDashboard() {
             className="relative overflow-hidden glass-panel rounded-3xl p-6 md:p-8 border-l-4 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6"
             style={{ borderLeftColor: accentColor }}
           >
-            <div className="w-full xl:w-auto">
-              {userName ? (
-                <div className="flex flex-col gap-2 mb-4 xl:mb-0">
-                  <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white flex items-center flex-wrap gap-x-3 gap-y-1">
-                    <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-sm">
-                      {greetingData.greeting},
-                    </span>
-                    <span>{userName}.</span>
-                  </h1>
-                  <p className="text-slate-400 text-base md:text-lg font-medium max-w-2xl">
-                    {greetingData.quote}
-                  </p>
-                </div>
-              ) : (
-                <div className="mb-4 xl:mb-0">
-                  <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
-                    BCA 2nd Sem <span style={{ color: accentColor }}>Prep Hub</span>
-                  </h1>
-                  <p className="text-slate-400 text-sm md:text-base">
-                    Your ultimate study arsenal. Master your exams with structured materials.
-                  </p>
-                </div>
-              )}
+            <div className="w-full xl:w-auto mb-4 xl:mb-0">
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
+                BCA 2nd Sem <span style={{ color: accentColor }}>Prep Hub</span>
+              </h1>
+              <p className="text-slate-400 text-sm md:text-base">
+                Browse subject notes, important questions, and the exam schedule.
+              </p>
             </div>
 
             {/* Countdown Clock */}
             {nextExam && (
               <div className="bg-black/50 border border-white/5 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 items-center backdrop-blur-md w-full xl:w-auto shadow-2xl">
                 <div className="text-[10px] text-slate-500 font-bold tracking-widest sm:border-r border-white/10 sm:pr-4 uppercase leading-relaxed text-center sm:text-left">
-                  Next Objective:
+                  Next exam
                   <br />
                   <span className="text-white normal-case text-xs font-bold block mt-0.5 truncate max-w-[120px]">
                     {nextExam.name}
@@ -446,35 +249,26 @@ export default function StudyDashboard() {
           <div>
             <div className="flex items-center justify-between mb-4 md:mb-6">
               <h2 className="text-xl font-medium text-slate-200">Modules</h2>
-              <div className="flex items-center gap-3">
-                <Link href="/browser" className="flex items-center gap-2 bg-indigo-600/20 text-indigo-400 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-indigo-600/30 transition-colors border border-indigo-500/20">
-                  <Globe className="w-3.5 h-3.5" /> Web Search
-                </Link>
-                <Filter className="w-4 h-4 text-slate-500 hover:text-white cursor-pointer transition-colors" />
-              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {subjects.map((subject, idx) => (
-                <motion.div
+                <motion.button
+                  type="button"
                   key={subject.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 * idx }}
-                  whileHover={!subject.locked ? { y: -4, scale: 1.02 } : {}}
-                  onClick={() => !subject.locked && setActiveSubject(subject)}
-                  className={`glass-panel rounded-2xl p-5 relative overflow-hidden group border border-white/5 transition-all duration-300 flex flex-col h-full min-h-[160px] ${
-                    subject.locked
-                      ? "opacity-60 cursor-not-allowed"
-                      : "cursor-pointer hover:border-white/20 hover:bg-white/[0.03]"
-                  }`}
+                  whileHover={{ y: -4, scale: 1.02 }}
+                  onClick={() => {
+                    setActiveSubject(subject);
+                    setActiveTab("questions");
+                  }}
+                  className="glass-panel rounded-2xl p-5 relative overflow-hidden group border border-white/5 transition-colors flex flex-col h-full min-h-[160px] w-full text-left cursor-pointer hover:border-white/20 hover:bg-white/[0.03]"
                 >
-                  {/* Subtle gradient background */}
-                  {!subject.locked && (
-                    <div
-                      className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${subject.color} blur-2xl opacity-30 group-hover:opacity-50 transition-opacity`}
-                    />
-                  )}
+                  <div
+                    className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${subject.color} blur-2xl opacity-30 group-hover:opacity-50 transition-opacity`}
+                  />
                   
                   <div className="relative z-10 flex flex-col h-full justify-between">
                     <div>
@@ -492,24 +286,11 @@ export default function StudyDashboard() {
                       </h3>
                     </div>
 
-                    <div className="mt-auto">
-                      {subject.locked ? (
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 bg-black/40 w-max px-2 py-1 rounded-md border border-white/5 uppercase tracking-wider">
-                          <Lock className="w-3 h-3" /> Locked
-                        </div>
-                      ) : subject.progress === 100 ? (
-                        <div className="flex items-center gap-2 text-[10px] font-black text-emerald-400 bg-emerald-400/10 w-max px-2.5 py-1.5 rounded-md border border-emerald-400/20 shadow-sm shadow-emerald-900/10 uppercase tracking-widest">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Completed
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-cyan-400/60 uppercase tracking-widest">
-                          <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/40" />
-                          Ready to Study
-                        </div>
-                      )}
-                    </div>
+                    <span className="text-xs font-medium text-cyan-300">
+                      View resources
+                    </span>
                   </div>
-                </motion.div>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -521,12 +302,6 @@ export default function StudyDashboard() {
           animate={{ opacity: 1, x: 0 }}
           className="w-full md:w-80 space-y-6 shrink-0"
         >
-          {/* Online Users Panel */}
-          <OnlineUsers />
-          
-          {/* Hall of Fame */}
-          <StudyLeaderboard />
-
           <div className="glass-panel rounded-3xl p-6 h-full border border-white/5">
             <div className="flex items-center gap-3 mb-8 pb-4 border-b border-white/5">
               <CalendarDays
@@ -534,73 +309,66 @@ export default function StudyDashboard() {
                 style={{ color: accentColor }}
               />
               <h2 className="font-medium text-lg tracking-wide">
-                Upcoming Exams
+                Exam Schedule
               </h2>
             </div>
 
-            {upcomingExams.length > 0 ? (
-              <div className="space-y-6 relative before:absolute before:inset-0 before:ml-[11px] before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-white/10 before:to-transparent">
-                {upcomingExams.map((sub, i) => {
-                  const isPast = new Date(sub.examDate).getTime() < new Date().getTime();
-                  const isNext = nextExam?.id === sub.id;
-                  
-                  return (
+            <div className="space-y-6 relative before:absolute before:inset-0 before:ml-[11px] before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-white/10 before:to-transparent">
+              {subjects.map((sub) => {
+                const isPast = now !== null && Date.parse(sub.examDate) <= now;
+                const isNext = nextExam?.id === sub.id;
+
+                return (
+                  <div
+                    key={sub.id}
+                    className={`relative flex items-center group ${isPast ? "opacity-50" : ""}`}
+                  >
+                    {/* Timeline Dot */}
                     <div
-                      key={i}
-                      className={`relative flex items-center group ${isPast ? "opacity-50" : ""}`}
+                      className="flex items-center justify-center w-6 h-6 rounded-full border border-white/10 bg-[#050505] shadow shrink-0 z-10 transition-colors duration-300"
+                      style={{
+                        boxShadow: isNext ? `0 0 10px ${accentGlow}` : "none",
+                        borderColor:
+                          isNext ? accentColor : "rgba(255,255,255,0.1)",
+                      }}
                     >
-                      {/* Timeline Dot */}
-                      <div
-                        className="flex items-center justify-center w-6 h-6 rounded-full border border-white/10 bg-[#050505] shadow shrink-0 z-10 transition-colors duration-300"
-                        style={{
-                          boxShadow: isNext ? `0 0 10px ${accentGlow}` : "none",
-                          borderColor:
-                            isNext ? accentColor : "rgba(255,255,255,0.1)",
-                        }}
-                      >
+                      {isPast ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      ) : (
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            isNext ? "animate-pulse" : ""
+                          }`}
+                          style={{
+                            backgroundColor: isNext ? accentColor : "#334155",
+                          }}
+                        />
+                      )}
+                    </div>
+                    {/* Content */}
+                    <div className={`w-[calc(100%-2rem)] glass-panel border border-white/5 p-3 rounded-xl ml-4 shadow-sm group-hover:border-white/10 transition-colors ${isPast ? "bg-emerald-500/5" : ""}`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-1">
+                        <span className="text-[10px] font-mono text-slate-400">
+                          {sub.displayDate}
+                        </span>
                         {isPast ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                        ) : (
-                          <div
-                            className={`w-2 h-2 rounded-full ${
-                              isNext ? "animate-pulse" : ""
-                            }`}
-                            style={{
-                              backgroundColor: isNext ? accentColor : "#334155",
-                            }}
-                          />
+                          <span className="text-[9px] w-max px-1.5 py-0.5 bg-emerald-500/20 rounded text-emerald-400 font-bold">
+                            COMPLETED
+                          </span>
+                        ) : sub.time && (
+                          <span className="text-[9px] w-max px-1.5 py-0.5 bg-white/5 rounded text-slate-300">
+                            {sub.time}
+                          </span>
                         )}
                       </div>
-
-                      {/* Content */}
-                      <div className={`w-[calc(100%-2rem)] glass-panel border border-white/5 p-3 rounded-xl ml-4 shadow-sm group-hover:border-white/10 transition-colors ${isPast ? "bg-emerald-500/5" : ""}`}>
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-1">
-                          <span className="text-[10px] font-mono text-slate-400">
-                            {sub.displayDate}
-                          </span>
-                          {isPast ? (
-                            <span className="text-[9px] w-max px-1.5 py-0.5 bg-emerald-500/20 rounded text-emerald-400 font-bold">
-                              COMPLETED
-                            </span>
-                          ) : sub.time && (
-                            <span className="text-[9px] w-max px-1.5 py-0.5 bg-white/5 rounded text-slate-300">
-                              {sub.time}
-                            </span>
-                          )}
-                        </div>
-                        <h4 className="text-xs font-medium text-slate-200 truncate">
-                          {sub.name}
-                        </h4>
-                      </div>
+                      <h4 className="text-xs font-medium text-slate-200 truncate">
+                        {sub.name}
+                      </h4>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center text-sm text-slate-500 py-8">
-                All exams completed! 🎉
-              </div>
-            )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </motion.div>
       </div>
@@ -800,7 +568,7 @@ export default function StudyDashboard() {
                             Syllabus missing
                           </h3>
                           <p className="text-sm text-slate-500 mt-1">
-                            Provide the unit-wise syllabus to generate study tracks.
+                            A syllabus image is unavailable for this subject.
                           </p>
                         </div>
                       )}
@@ -813,68 +581,6 @@ export default function StudyDashboard() {
         )}
       </AnimatePresence>
 
-      {/* ── Name Entry Modal ── */}
-      <AnimatePresence>
-        {showNameModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-          >
-            {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-
-            <motion.div
-              initial={{ scale: 0.92, y: 24, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.92, y: 24, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 24 }}
-              className="relative z-10 glass-panel border border-white/10 rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center space-y-5"
-            >
-              {/* Icon */}
-              <div className="mx-auto w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                <UserCheck className="w-7 h-7 text-emerald-400" />
-              </div>
-
-              <div>
-                <h2 className="text-xl font-bold text-white mb-1">Join the Study Session</h2>
-              </div>
-
-              {/* Input */}
-              <div className="text-left space-y-1">
-                <input
-                  ref={nameInputRef}
-                  type="text"
-                  value={nameInput}
-                  onChange={(e) => {
-                    setNameInput(e.target.value);
-                    if (nameError) setNameError("");
-                  }}
-                  onKeyDown={(e) => e.key === "Enter" && handleJoinExam()}
-                  placeholder="Your name…"
-                  maxLength={40}
-                  className={`w-full bg-white/5 border ${nameError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-white/10 focus:border-emerald-500 focus:ring-emerald-500'} rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 transition-all text-sm`}
-                />
-                {nameError && (
-                  <p className="text-xs text-red-400 font-medium px-1">{nameError}</p>
-                )}
-              </div>
-
-              {/* Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={handleJoinExam}
-                  disabled={!nameInput.trim() || isJoining}
-                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all shadow-[0_0_16px_rgba(16,185,129,0.3)]"
-                >
-                  {isJoining ? "Joining…" : "Join"}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

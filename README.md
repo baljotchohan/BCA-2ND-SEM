@@ -10,8 +10,8 @@ A high-performance, minimalist dashboard designed for the **Panjab University (P
 
 ## ⚡ Features
 
-- **Dynamic Exam Countdown:** Real-time tracking of the next paper.
-- **Unit-Wise Resource Vault:** Structured access to PDFs and study notes for all 8 subjects.
+- **Exam Schedule:** Dates and a countdown for the next scheduled exam.
+- **Unit-Wise Resource Vault:** Study notes and important questions for seven subjects.
 - **High-End UI:** A "Cream" dark-mode aesthetic built with Framer Motion and Glassmorphism.
 - **Mobile First:** Optimized for quick revision outside the exam hall.
 
@@ -34,16 +34,23 @@ A high-performance, minimalist dashboard designed for the **Panjab University (P
 
 ## 🛠️ Tech Stack
 
-- **Frontend:** Next.js 14+ (App Router)
+- **Frontend:** Next.js 16 (App Router, static export)
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS
 - **Icons:** Lucide-React
-- **Deployment:** Vercel / GitHub Pages
+- **Deployment:** GitHub Pages
 
 ---
 
 ## 🚀 Getting Started
 
-1. **Clone the repo:**
-   ```bash
-   git clone [https://github.com/baljotchohan/BCA-2-SEM.git](https://github.com/baljotchohan/BCA-2-SEM.git)
+Run the local development server with Node.js 20.9 or newer.
+
+```sh
+git clone https://github.com/baljotchohan/BCA-2ND-SEM.git
+cd BCA-2ND-SEM/study-dashboard
+npm ci
+npm run dev
+```
+
+Open [localhost:3000](http://localhost:3000). Run `npm run build` to export the site to `study-dashboard/out`. The production build uses the `/BCA-2ND-SEM` GitHub Pages base path.

@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import PageTracker from "./components/PageTracker";
-import GlobalChat from "./components/GlobalChat";
-import PresenceManager from "./components/PresenceManager";
-import EndSemesterFeedback from "./components/EndSemesterFeedback";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "BCA 2nd Sem | Study Dashboard",
-  description: "A high-end, minimalist study dashboard for BCA 2nd Semester.",
+  description: "BCA second-semester study notes, important questions, and exam schedule.",
 };
 
 export default function RootLayout({
@@ -32,11 +28,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <PageTracker />
-        <PresenceManager />
         {children}
-        <GlobalChat />
-        <EndSemesterFeedback />
       </body>
     </html>
   );
